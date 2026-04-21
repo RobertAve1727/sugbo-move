@@ -2,25 +2,54 @@ import React from "react";
 import AppHeader from "../components/layout/AppHeader";
 import AppBottomNav from "../components/layout/AppBottomNav";
 
+// 1. LEAFLET IMPORTS & TYPES
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import type { LatLngExpression } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// 2. FIX FOR DEFAULT MARKER ICON (Leaflet + React issue)
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
 const RouteComparisonScreen: React.FC = () => {
+  // Coordinates for Cebu City defined with explicit Leaflet type
+  const cebuPosition: LatLngExpression = [10.3157, 123.8854];
+
   return (
     <div className="bg-[#f8f9fb] text-[#1a1c1e] min-h-screen font-sans selection:bg-primary selection:text-on-primary">
       
-      {/* APP HEADER */}
       <AppHeader />
 
-      {/* MAIN */}
       <main className="pt-24 pb-40 px-6 max-w-xl mx-auto">
 
         {/* HERO / MAP SECTION */}
-        <section className="relative h-48 rounded-3xl overflow-hidden mb-6 shadow-sm">
-          <img
-            src="https://api.placeholder.com/map-placeholder" // Replace with your actual map image
-            className="w-full h-full object-cover"
-            alt="Cebu Map"
-          />
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/40 to-transparent">
+        <section className="relative h-48 rounded-3xl overflow-hidden mb-6 shadow-sm border border-gray-100">
+          <MapContainer 
+            center={cebuPosition} 
+            zoom={13} 
+            zoomControl={false}
+            scrollWheelZoom={true} // Now set to true for desktop interaction
+            className="w-full h-full z-0"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <Marker position={cebuPosition} />
+          </MapContainer>
+
+          {/* TEXT OVERLAYS - Added pointer-events-none to both */}
+          <div className="absolute inset-0 bg-black/10 pointer-events-none z-10" />
+          <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent z-20 pointer-events-none">
             <span className="w-fit font-bold text-[10px] uppercase tracking-widest bg-black text-white px-3 py-1 rounded-md mb-2">
               Real-time Analysis
             </span>
@@ -33,10 +62,9 @@ const RouteComparisonScreen: React.FC = () => {
         {/* RECOMMENDATION STRATEGY */}
         <section className="grid gap-4 mb-6">
           <div className="bg-[#04162e] text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden">
-             {/* Decorative Sparkle Icon could go here */}
             <div className="flex items-center gap-2 mb-4">
-               <span className="text-green-400">✦</span>
-               <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">
+              <span className="text-green-400">✦</span>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">
                 Recommended Strategy
               </p>
             </div>
@@ -64,7 +92,6 @@ const RouteComparisonScreen: React.FC = () => {
             </p>
 
             <div className="relative flex items-center justify-center mb-6">
-              {/* Simple CSS Circle for 95% */}
               <svg className="w-32 h-32 transform -rotate-90">
                 <circle
                   cx="64" cy="64" r="58"
@@ -101,16 +128,12 @@ const RouteComparisonScreen: React.FC = () => {
                 <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-[10px] font-bold uppercase">-12% CO2</span>
               </div>
             </div>
-            
             <div className="grid grid-cols-3 gap-4 mb-6 text-gray-400 uppercase text-[10px] font-bold tracking-widest">
               <div>Distance <p className="text-lg text-black lowercase mt-1">12.4 km</p></div>
               <div>Est. Time <p className="text-lg text-black lowercase mt-1">22 min</p></div>
               <div>Fuel Cost <p className="text-lg text-black lowercase mt-1">₱0</p></div>
             </div>
-
-            <button className="w-1/2 py-3 bg-gray-100 rounded-xl font-bold uppercase text-[11px] tracking-widest">
-              Select
-            </button>
+            <button className="w-1/2 py-3 bg-gray-100 rounded-xl font-bold uppercase text-[11px] tracking-widest">Select</button>
           </div>
 
           {/* Route B - Active/Best */}
@@ -125,13 +148,11 @@ const RouteComparisonScreen: React.FC = () => {
                 </div>
               </div>
             </div>
-
             <div className="grid grid-cols-3 gap-4 mb-6 text-gray-400 uppercase text-[10px] font-bold tracking-widest">
               <div>Distance <p className="text-lg text-black lowercase mt-1">14.8 km</p></div>
               <div>Est. Time <p className="text-2xl text-green-500 font-bold lowercase">28 min</p></div>
               <div>Fuel Cost <p className="text-lg text-black lowercase mt-1">₱0</p></div>
             </div>
-
             <button className="w-full py-4 bg-[#04162e] text-white rounded-xl font-bold uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2">
               Start Route <span className="text-[10px]">▲</span>
             </button>
@@ -146,23 +167,18 @@ const RouteComparisonScreen: React.FC = () => {
                 <span className="bg-red-50 text-red-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase">+5% CO2</span>
               </div>
             </div>
-            
             <div className="grid grid-cols-3 gap-4 mb-6 text-gray-400 uppercase text-[10px] font-bold tracking-widest">
               <div>Distance <p className="text-lg text-black lowercase mt-1">11.2 km</p></div>
               <div>Est. Time <p className="text-lg text-black lowercase mt-1">45 min</p></div>
               <div>Fuel Cost <p className="text-lg text-black lowercase mt-1">₱0</p></div>
             </div>
-
-            <button className="w-1/2 py-3 bg-gray-100 rounded-xl font-bold uppercase text-[11px] tracking-widest">
-              Select
-            </button>
+            <button className="w-1/2 py-3 bg-gray-100 rounded-xl font-bold uppercase text-[11px] tracking-widest">Select</button>
           </div>
-
         </section>
       </main>
 
-      {/* FAB (The filter button in the bottom right) */}
-      <button className="fixed bottom-28 right-6 w-14 h-14 bg-[#04162e] text-white rounded-2xl shadow-2xl flex items-center justify-center">
+      {/* Floating Filter Button */}
+      <button className="fixed bottom-28 right-6 w-14 h-14 bg-[#04162e] text-white rounded-2xl shadow-2xl flex items-center justify-center z-50">
          <span className="text-xl">≡</span>
       </button>
 
@@ -173,7 +189,6 @@ const RouteComparisonScreen: React.FC = () => {
         onRoutes={() => {}}
         onProfile={() => {}}
       />
-
     </div>
   );
 };
