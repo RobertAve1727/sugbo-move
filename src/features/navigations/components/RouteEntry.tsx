@@ -1,4 +1,8 @@
-export const RouteEntry = () => {
+interface RouteEntryProps {
+  onFindBestRoute?: () => void;
+}
+
+export const RouteEntry = ({ onFindBestRoute }: RouteEntryProps) => {
   return (
     <div className="bg-white dark:bg-code-bg rounded-xl p-6 shadow-lg border border-border mb-8">
       <div className="space-y-4 relative">
@@ -18,7 +22,11 @@ export const RouteEntry = () => {
         />
       </div>
 
-      <button className="mt-8 w-full h-14 bg-accent text-white rounded-lg font-headline font-bold uppercase tracking-widest text-sm shadow-lg shadow-accent/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+      <button
+        type="button"
+        onClick={onFindBestRoute}
+        className="mt-8 w-full h-14 bg-accent text-white rounded-lg font-headline font-bold uppercase tracking-widest text-sm shadow-lg shadow-accent/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+      >
         Find Best Route
         <span className="material-symbols-outlined">trending_flat</span>
       </button>

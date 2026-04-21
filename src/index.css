@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Manrope:wght@400;500;600;700&family=Inter:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -7,6 +9,53 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-code-bg: var(--code-bg);
+  --color-secondary-container: var(--secondary-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-on-secondary-fixed-variant: var(--on-secondary-fixed-variant);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-container: var(--surface-container);
+  --color-outline: var(--outline);
+  --color-on-surface: var(--on-surface);
+  --color-secondary-fixed: var(--secondary-fixed);
+  --color-surface-variant: var(--surface-variant);
+  --color-primary: var(--primary);
+  --color-on-primary-fixed: var(--on-primary-fixed);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+  --color-on-error-container: var(--on-error-container);
+  --color-error-container: var(--error-container);
+  --color-surface: var(--surface);
+  --color-surface-tint: var(--surface-tint);
+  --color-on-primary: var(--on-primary);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-background: var(--background);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-on-tertiary-fixed-variant: var(--on-tertiary-fixed-variant);
+  --color-error: var(--error);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-on-secondary-fixed: var(--on-secondary-fixed);
+  --color-inverse-primary: var(--inverse-primary);
+  --color-primary-fixed-dim: var(--primary-fixed-dim);
+  --color-surface-bright: var(--surface-bright);
+  --color-on-tertiary-fixed: var(--on-tertiary-fixed);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-on-primary-fixed-variant: var(--on-primary-fixed-variant);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-secondary-fixed-dim: var(--secondary-fixed-dim);
+  --color-tertiary-fixed: var(--tertiary-fixed);
+  --color-on-background: var(--on-background);
+  --color-tertiary: var(--tertiary);
+  --color-on-secondary: var(--on-secondary);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-primary-container: var(--primary-container);
+  --color-secondary: var(--secondary);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-tertiary-fixed-dim: var(--tertiary-fixed-dim);
+  --color-on-error: var(--on-error);
+  --color-on-tertiary: var(--on-tertiary);
 
   --font-sans: var(--sans);
   --font-heading: var(--heading);
@@ -24,8 +73,57 @@
     --code-bg: #f4f3ec;
     --accent: #aa3bff;
 
-    --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-    --heading: system-ui, "Segoe UI", Roboto, sans-serif;
+    --secondary-container: #d5e3fc;
+    --surface-container-high: #e6e8ea;
+    --on-secondary-fixed-variant: #3a485b;
+    --surface-dim: #d8dadc;
+    --surface-container: #eceef0;
+    --outline: #74777e;
+    --on-surface: #191c1e;
+    --secondary-fixed: #d5e3fc;
+    --surface-variant: #e0e3e5;
+    --primary: #000d22;
+    --on-primary-fixed: #021c3a;
+    --primary-fixed: #d5e3ff;
+    --on-tertiary-container: #0d9f47;
+    --on-error-container: #93000a;
+    --error-container: #ffdad6;
+    --surface: #f7f9fb;
+    --surface-tint: #4a5f81;
+    --on-primary: #ffffff;
+    --surface-container-highest: #e0e3e5;
+    --tertiary-container: #002a0d;
+    --background: #f7f9fb;
+    --surface-container-low: #f2f4f6;
+    --on-tertiary-fixed-variant: #005320;
+    --error: #ba1a1a;
+    --outline-variant: #c4c6cf;
+    --on-primary-container: #768baf;
+    --on-secondary-fixed: #0d1c2e;
+    --inverse-primary: #b2c7ef;
+    --primary-fixed-dim: #b2c7ef;
+    --surface-bright: #f7f9fb;
+    --on-tertiary-fixed: #002109;
+    --on-surface-variant: #44474e;
+    --on-primary-fixed-variant: #324768;
+    --inverse-on-surface: #eff1f3;
+    --secondary-fixed-dim: #b9c7df;
+    --tertiary-fixed: #7ffc97;
+    --on-background: #191c1e;
+    --tertiary: #001103;
+    --on-secondary: #ffffff;
+    --on-secondary-container: #57657a;
+    --inverse-surface: #2d3133;
+    --primary-container: #0a2342;
+    --secondary: #515f74;
+    --surface-container-lowest: #ffffff;
+    --tertiary-fixed-dim: #62df7d;
+    --on-error: #ffffff;
+    --on-tertiary: #ffffff;
+
+    --sans: "Manrope", system-ui, "Segoe UI", Roboto, sans-serif;
+    --heading: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+    --label: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, Consolas, monospace;
 
     font: 18px/145% var(--sans);
@@ -50,6 +148,26 @@
     font-family: var(--heading);
   }
 
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    display: inline-block;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  }
+
+  .glass-gradient {
+    background: linear-gradient(135deg, #000d22 0%, #0a2342 100%);
+  }
+
   h1 {
     @apply text-[36px] lg:text-[56px] font-medium tracking-[-1.68px] my-5 lg:my-8 text-text-h;
   }
@@ -62,5 +180,17 @@
 @layer components {
   #root {
     @apply w-full max-w-[1126px] mx-auto text-center min-h-[100svh] flex flex-col box-border border-x border-border;
+  }
+
+  .font-label {
+    font-family: var(--label);
+  }
+
+  .font-body {
+    font-family: var(--sans);
+  }
+
+  .font-headline {
+    font-family: var(--heading);
   }
 }

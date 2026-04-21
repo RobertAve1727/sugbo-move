@@ -3,7 +3,11 @@ import { MetricCard } from "../components/ui/MetricCard";
 import { RouteEntry } from "../features/navigations/components/RouteEntry";
 import { RecentTrips } from "../features/navigations/components/RecentTrips";
 
-const HomeScreen = () => {
+interface HomeScreenProps {
+  onFindBestRoute: () => void;
+}
+
+const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
   return (
     <div className="relative min-h-screen bg-bg">
       <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-bg/80 backdrop-blur-md border-b border-border">
@@ -34,7 +38,7 @@ const HomeScreen = () => {
           </p>
         </section>
 
-        <RouteEntry />
+        <RouteEntry onFindBestRoute={onFindBestRoute} />
 
         <div className="grid grid-cols-2 gap-4 mb-8">
           <MetricCard
