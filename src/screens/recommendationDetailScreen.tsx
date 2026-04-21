@@ -5,12 +5,14 @@ interface RecommendationDetailScreenProps {
   onBackToHome: () => void;
 }
 
-const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreenProps) => {
+const RecommendationDetailScreen = ({
+  onBackToHome,
+}: RecommendationDetailScreenProps) => {
   return (
-    <div className="min-h-screen bg-surface text-on-surface flex flex-col">
+    <div className="min-h-dvh bg-surface text-on-surface flex flex-1 flex-col w-full">
       <AppHeader onMenuClick={onBackToHome} />
 
-      <main className="flex-1 px-6 max-w-2xl mx-auto space-y-8 pt-6">
+      <main className="flex-1 px-4 sm:px-6 max-w-2xl w-full mx-auto space-y-8 pt-6 pb-28 md:pb-10">
         <section className="space-y-4">
           <div className="inline-flex items-center px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed rounded-full text-[10px] font-label font-bold tracking-widest uppercase">
             Optimized Choice
@@ -19,7 +21,8 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
             Route B is your best bet!
           </h2>
           <p className="text-on-surface-variant font-body text-lg leading-relaxed max-w-md">
-            Low traffic on SRP avoids idling, saving you <span className="text-on-tertiary-container font-bold">₱125</span>.
+            Low traffic on SRP avoids idling, saving you{" "}
+            <span className="text-on-tertiary-container font-bold">₱125</span>.
           </p>
         </section>
 
@@ -35,10 +38,15 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
               <span className="font-label text-[10px] text-on-surface-variant uppercase font-bold tracking-widest">
                 Est. Duration
               </span>
-              <p className="font-headline text-2xl font-bold text-primary">24 mins</p>
+              <p className="font-headline text-2xl font-bold text-primary">
+                24 mins
+              </p>
             </div>
             <div className="bg-tertiary-container text-tertiary-fixed p-3 rounded-full shadow-lg">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
                 eco
               </span>
             </div>
@@ -53,8 +61,12 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
             <div className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <span className="font-body font-bold text-primary">Route B (SRP Coastal)</span>
-                  <span className="font-headline font-bold text-on-tertiary-container">₱410</span>
+                  <span className="font-body font-bold text-primary">
+                    Route B (SRP Coastal)
+                  </span>
+                  <span className="font-headline font-bold text-on-tertiary-container">
+                    ₱410
+                  </span>
                 </div>
                 <div className="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-on-tertiary-container to-tertiary-fixed-dim w-[65%] rounded-full" />
@@ -63,8 +75,12 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
 
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <span className="font-body font-medium text-on-surface-variant">Route A (Natalio Bacalso)</span>
-                  <span className="font-body font-bold text-on-surface">₱535</span>
+                  <span className="font-body font-medium text-on-surface-variant">
+                    Route A (Natalio Bacalso)
+                  </span>
+                  <span className="font-body font-bold text-on-surface">
+                    ₱535
+                  </span>
                 </div>
                 <div className="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
                   <div className="h-full bg-outline-variant/40 w-[85%] rounded-full" />
@@ -74,9 +90,13 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
           </div>
 
           <div className="bg-tertiary-container p-6 rounded-2xl flex flex-col justify-between aspect-square md:aspect-auto">
-            <span className="material-symbols-outlined text-tertiary-fixed text-4xl">savings</span>
+            <span className="material-symbols-outlined text-tertiary-fixed text-4xl">
+              savings
+            </span>
             <div>
-              <h4 className="font-headline text-3xl font-bold text-on-tertiary-container leading-none !my-0">₱125</h4>
+              <h4 className="font-headline text-3xl font-bold text-on-tertiary-container leading-none !my-0">
+                ₱125
+              </h4>
               <p className="font-body text-sm text-tertiary-fixed/80 mt-2">
                 Saved compared to traffic-heavy alternatives.
               </p>
@@ -84,9 +104,13 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
           </div>
 
           <div className="bg-surface-container-highest p-6 rounded-2xl flex flex-col justify-between">
-            <span className="material-symbols-outlined text-primary text-4xl">speed</span>
+            <span className="material-symbols-outlined text-primary text-4xl">
+              speed
+            </span>
             <div>
-              <h4 className="font-headline text-3xl font-bold text-primary leading-none !my-0">Flowing</h4>
+              <h4 className="font-headline text-3xl font-bold text-primary leading-none !my-0">
+                Flowing
+              </h4>
               <p className="font-body text-sm text-on-surface-variant mt-2">
                 SRP currently reporting 45km/h average speed.
               </p>
@@ -96,7 +120,10 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
 
         <section className="pt-4 pb-8">
           <button className="w-full glass-gradient text-white py-5 px-8 rounded-xl font-headline font-bold text-lg shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-3">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
               navigation
             </span>
             Start Navigation
