@@ -1,12 +1,29 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import type { LatLngExpression } from "leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import AppBottomNav from "../components/layout/AppBottomNav";
 import AppHeader from "../components/layout/AppHeader";
+import type { TripRequest } from "../types/trip";
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
 interface HomeScreenProps {
-  onFindBestRoute: () => void;
+  tripRequest: TripRequest;
+  onTripDraftChange: (trip: TripRequest) => void;
+  onFindBestRoute: (trip: TripRequest) => void;
 }
 
-const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
+const DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScreenProps) => {
   const [availableVehicles] = useState([
     {
       id: "v1",
@@ -27,6 +44,7 @@ const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
   ]);
 
   const [selectedVehicleId, setSelectedVehicleId] = useState("v1");
+  const [mapPickMode, setMapPickMode] = useState<"origin" | "destination">("origin");
 
   const recentTrips = [
     {
@@ -66,6 +84,63 @@ const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
     },
   ];
 
+  const handleFindBestRoute = () => {
+    const normalizedOrigin = tripRequest.origin.trim();
+    const normalizedDestination = tripRequest.destination.trim();
+
+    if (!normalizedOrigin || !normalizedDestination) {
+      return;
+    }
+
+    onFindBestRoute({
+      origin: normalizedOrigin,
+      destination: normalizedDestination,
+      originCoord: tripRequest.originCoord ?? null,
+      destinationCoord: tripRequest.destinationCoord ?? null,
+    });
+  };
+
+  const mapCenter: LatLngExpression = useMemo(() => {
+    if (tripRequest.originCoord) {
+      return [tripRequest.originCoord.lat, tripRequest.originCoord.lng];
+    }
+    if (tripRequest.destinationCoord) {
+      return [tripRequest.destinationCoord.lat, tripRequest.destinationCoord.lng];
+    }
+    return [10.3157, 123.8854];
+  }, [tripRequest.destinationCoord, tripRequest.originCoord]);
+
+  const formatPinnedLabel = (lat: number, lng: number): string =>
+    `Pinned (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+
+  const MapClickHandler = () => {
+    useMapEvents({
+      click: (event) => {
+        const nextCoord = {
+          lat: event.latlng.lat,
+          lng: event.latlng.lng,
+        };
+
+        if (mapPickMode === "origin") {
+          onTripDraftChange({
+            ...tripRequest,
+            origin: formatPinnedLabel(nextCoord.lat, nextCoord.lng),
+            originCoord: nextCoord,
+          });
+          return;
+        }
+
+        onTripDraftChange({
+          ...tripRequest,
+          destination: formatPinnedLabel(nextCoord.lat, nextCoord.lng),
+          destinationCoord: nextCoord,
+        });
+      },
+    });
+
+    return null;
+  };
+
   return (
     // Removed overflow-hidden and h-dvh to allow natural body scrolling
     <div className="bg-[#f0f4f8] font-body text-[#1a1c1e] min-h-screen flex flex-col w-full relative">
@@ -104,7 +179,14 @@ const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
                 </span>
                 <input
                   className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold focus:ring-1 focus:ring-[#001d3d]"
-                  defaultValue="IT Park, Lahug"
+                  value={tripRequest.origin}
+                  onChange={(event) =>
+                    onTripDraftChange({
+                      ...tripRequest,
+                      origin: event.target.value,
+                      originCoord: null,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -116,10 +198,69 @@ const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
                 </span>
                 <input
                   className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold"
+                  value={tripRequest.destination}
+                  onChange={(event) =>
+                    onTripDraftChange({
+                      ...tripRequest,
+                      destination: event.target.value,
+                      destinationCoord: null,
+                    })
+                  }
                   placeholder="Search destination..."
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white/90 rounded-[24px] p-4 mb-8 border border-[#dce3ea] shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-[#001d3d]">Tap Map To Pin Trip Points</h3>
+            <div className="flex bg-[#eef3f8] rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setMapPickMode("origin")}
+                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg ${
+                  mapPickMode === "origin" ? "bg-[#001d3d] text-white" : "text-[#60778f]"
+                }`}
+              >
+                Set Origin
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapPickMode("destination")}
+                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg ${
+                  mapPickMode === "destination" ? "bg-[#001d3d] text-white" : "text-[#60778f]"
+                }`}
+              >
+                Set Destination
+              </button>
+            </div>
+          </div>
+
+          <div className="h-52 rounded-2xl overflow-hidden border border-[#dce3ea]">
+            <MapContainer
+              center={mapCenter}
+              zoom={12}
+              scrollWheelZoom
+              className="w-full h-full"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <MapClickHandler />
+
+              {tripRequest.originCoord && (
+                <Marker position={[tripRequest.originCoord.lat, tripRequest.originCoord.lng]} />
+              )}
+
+              {tripRequest.destinationCoord && (
+                <Marker
+                  position={[tripRequest.destinationCoord.lat, tripRequest.destinationCoord.lng]}
+                />
+              )}
+            </MapContainer>
           </div>
         </div>
 
@@ -155,8 +296,9 @@ const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
 
         {/* Find Best Route Button: Now sits in the flow of the page */}
         <button
-          onClick={onFindBestRoute}
-          className="w-full h-14 bg-[#001d3d] text-white rounded-2xl font-bold uppercase tracking-widest text-sm shadow-xl mb-10 hover:bg-[#002d5d] active:scale-95 transition-all"
+          onClick={handleFindBestRoute}
+          disabled={!tripRequest.origin.trim() || !tripRequest.destination.trim()}
+          className="w-full h-14 bg-[#001d3d] disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-2xl font-bold uppercase tracking-widest text-sm shadow-xl mb-10 hover:bg-[#002d5d] active:scale-95 transition-all"
         >
           Find Best Route
         </button>
@@ -198,7 +340,7 @@ const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
 
       {/* BOTTOM NAV: Full width, stays at bottom */}
       <div className="w-full bg-white border-t border-gray-200 sticky bottom-0 z-50">
-        <AppBottomNav activeTab="explore" onRoutes={onFindBestRoute} />
+        <AppBottomNav activeTab="explore" onRoutes={handleFindBestRoute} />
       </div>
     </div>
   );

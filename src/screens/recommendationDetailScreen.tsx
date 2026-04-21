@@ -1,20 +1,67 @@
+import { useMemo } from "react";
 import AppBottomNav from "../components/layout/AppBottomNav";
 import AppHeader from "../components/layout/AppHeader";
+import type { RouteComparisonResult } from "../services/mapboxDirections";
+import { fallbackRoutes } from "../services/fallbackRoutes";
+import { buildDisplayRoutes, getRecommendedRoute } from "../services/routeInsights";
+import type { TripRequest } from "../types/trip";
 
 interface RecommendationDetailScreenProps {
   onBackToHome: () => void;
-  isCongested?: boolean;
+  tripRequest: TripRequest;
+  routeData: RouteComparisonResult | null;
+  isLoading: boolean;
+  loadError: string | null;
 }
 
 const RecommendationDetailScreen = ({
   onBackToHome,
-  isCongested = true,
+  tripRequest,
+  routeData,
+  isLoading,
+  loadError,
 }: RecommendationDetailScreenProps) => {
+  const routes = routeData?.routes?.length ? routeData.routes : fallbackRoutes;
+  const displayRoutes = useMemo(() => buildDisplayRoutes(routes), [routes]);
+  const recommendedRoute = useMemo(() => getRecommendedRoute(displayRoutes), [displayRoutes]);
+
+  const directRoute = useMemo(
+    () => displayRoutes.find((route) => route.id === "routeA") ?? displayRoutes[0],
+    [displayRoutes],
+  );
+
+  const alternativeRoute = useMemo(
+    () =>
+      displayRoutes
+        .filter((route) => route.id !== directRoute?.id)
+        .sort((routeA, routeB) => routeA.fuelCostPhp - routeB.fuelCostPhp)[0],
+    [directRoute?.id, displayRoutes],
+  );
+
+  const isCongested = (directRoute?.durationMin ?? 0) > (recommendedRoute?.durationMin ?? 0);
+  const suggestedWaitMinutes = Math.max(
+    10,
+    (directRoute?.durationMin ?? 0) - (recommendedRoute?.durationMin ?? 0),
+  );
+  const estimatedSavings = Math.max(
+    0,
+    (directRoute?.fuelCostPhp ?? 0) - (recommendedRoute?.fuelCostPhp ?? 0),
+  );
+
+  const resolvedOrigin = routeData?.origin ?? tripRequest.origin;
+  const resolvedDestination = routeData?.destination ?? tripRequest.destination;
+
   return (
     <div className="min-h-dvh bg-[#f0f4f8] text-[#1a1c1e] flex flex-1 flex-col w-full">
       <AppHeader onMenuClick={onBackToHome} />
 
       <main className="flex-1 px-4 sm:px-6 max-w-md w-full mx-auto space-y-6 pt-6 pb-28">
+        {loadError && (
+          <div className="rounded-2xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-xs font-semibold text-yellow-700">
+            {loadError}
+          </div>
+        )}
+
         {/* 1. THE DIRECT ROUTE (The Baseline) */}
         <section className="space-y-4">
           <div className="flex justify-between items-center">
@@ -22,9 +69,13 @@ const RecommendationDetailScreen = ({
               Direct Route Detail
             </h2>
             <span className="text-[10px] font-bold text-[#60778f] uppercase tracking-widest">
-              Via SRP Coastal
+              {directRoute?.corridor ?? "Route Analysis"}
             </span>
           </div>
+
+          <p className="text-[11px] text-[#60778f] font-semibold leading-tight">
+            {resolvedOrigin} to {resolvedDestination}
+          </p>
 
           <div className="bg-white rounded-[24px] p-5 shadow-sm border border-[#e9eef2] space-y-4">
             <div className="flex justify-between items-center">
@@ -36,14 +87,18 @@ const RecommendationDetailScreen = ({
                   {isCongested ? "Heavy Congestion Detected" : "Optimal Flow"}
                 </span>
               </div>
-              <span className="text-lg font-black text-[#001d3d]">₱535</span>
+              <span className="text-lg font-black text-[#001d3d]">
+                {directRoute ? `₱${directRoute.fuelCostPhp}` : "..."}
+              </span>
             </div>
 
             {/* Minimal Map Strip for context */}
             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
-              <div className="h-full bg-red-500 w-1/3" />
-              <div className="h-full bg-red-400 w-1/3" />
-              <div className="h-full bg-red-600 w-1/3" />
+              <div
+                className={`h-full ${isCongested ? "bg-red-500" : "bg-green-500"}`}
+                style={{ width: `${Math.min(100, directRoute?.efficiencyScore ?? 0)}%` }}
+              />
+              <div className="h-full bg-gray-200" style={{ width: `${100 - Math.min(100, directRoute?.efficiencyScore ?? 0)}%` }} />
             </div>
           </div>
         </section>
@@ -69,19 +124,19 @@ const RecommendationDetailScreen = ({
                 <div className="flex justify-between items-start pt-2">
                   <div>
                     <h4 className="text-base font-bold text-[#001d3d]">
-                      Delayed Entry: 5:45 PM
+                      Delayed Entry: +{suggestedWaitMinutes} mins
                     </h4>
                     <p className="text-[11px] text-[#60778f] leading-tight mt-1">
                       Stick to the{" "}
                       <span className="font-bold text-[#001d3d]">
-                        Direct Route
+                        {directRoute?.name ?? "Direct Route"}
                       </span>
-                      , but wait 45 mins <br />
+                      , but wait {suggestedWaitMinutes} mins <br />
                       to bypass the peak congestion wave.
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-[#2ecc71]">-₱125</p>
+                    <p className="text-sm font-bold text-[#2ecc71]">-₱{estimatedSavings}</p>
                     <p className="text-[10px] font-bold text-gray-400">
                       SAVINGS
                     </p>
@@ -102,10 +157,12 @@ const RecommendationDetailScreen = ({
                 <div className="flex justify-between items-end">
                   <div>
                     <h4 className="text-base font-bold text-white">
-                      Via CCLEX Alternative
+                      {alternativeRoute?.corridor ?? recommendedRoute?.corridor ?? "Best Alternative"}
                     </h4>
                     <p className="text-[11px] text-[#b4f9c8]/70">
-                      Zero congestion, ₱410 fuel cost.
+                      {recommendedRoute
+                        ? `${recommendedRoute.trafficLabel}, ₱${recommendedRoute.fuelCostPhp} fuel cost.`
+                        : "Live route metrics loading..."}
                     </p>
                   </div>
                   <span className="material-symbols-outlined text-white/50">
@@ -120,14 +177,20 @@ const RecommendationDetailScreen = ({
                 verified
               </span>
               <h4 className="text-sm font-bold text-[#00391c]">
-                Direct Route is Optimal
+                {recommendedRoute?.name ?? "Direct Route"} is Optimal
               </h4>
               <p className="text-[11px] text-[#00391c]/60 mt-1">
-                Proceed immediately for maximum fuel efficiency.
+                Proceed immediately for maximum fuel efficiency and lowest travel time.
               </p>
             </div>
           )}
         </section>
+
+        {isLoading && (
+          <section className="bg-white rounded-[24px] p-5 border border-[#e9eef2] text-sm text-gray-500 font-medium">
+            Loading synchronized trip recommendations...
+          </section>
+        )}
 
         {/* 3. EXECUTION FOOTER */}
         <section className="pt-6 pb-12">
@@ -151,7 +214,7 @@ const RecommendationDetailScreen = ({
         </section>
       </main>
 
-      <AppBottomNav activeTab="routes" onExplore={onBackToHome} />
+      <AppBottomNav activeTab="recos" onExplore={onBackToHome} />
     </div>
   );
 };

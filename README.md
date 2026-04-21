@@ -1,73 +1,51 @@
-# React + TypeScript + Vite
+# Sugbo Move
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Traffic-aware route comparison app for Cebu, built with React + TypeScript + Vite.
 
-Currently, two official plugins are available:
+## Architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Frontend: React + Vite (`src/`)
+- Backend API: Express server (`server/index.js`)
+- Map provider: Mapbox Directions API with `mapbox/driving-traffic`
 
-## React Compiler
+Mapbox tokens are now backend-only. The browser calls `/api/routes/compare`, and the Express server calls Mapbox.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Dynamic Trip Flow
 
-## Expanding the ESLint configuration
+The Home screen now sends user-entered `origin` and `destination` to Route Comparison.
+Route Comparison fetches live route alternatives and computes all metrics dynamically per trip.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Dynamic values now include:
+- Distance (km)
+- Estimated travel time (minutes)
+- Fuel cost (PHP) based on distance and vehicle efficiency
+- CO2 output estimate
+- Best-balance recommendation score
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Setup
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Create a local env file from `.env.example`.
+2. Add your backend env values:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
+PORT=8787
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+3. Install dependencies:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+4. Start frontend + backend together:
+
+```bash
+npm run dev:full
+```
+
+## Notes
+
+- Vite proxies `/api` to `http://localhost:8787` in development.
+- If the backend cannot reach Mapbox, Route Comparison falls back to local estimates.
+- Backend route comparison endpoint: `POST /api/routes/compare`.
