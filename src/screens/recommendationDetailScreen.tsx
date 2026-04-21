@@ -1,36 +1,16 @@
+import AppBottomNav from "../components/layout/AppBottomNav";
+import AppHeader from "../components/layout/AppHeader";
+
 interface RecommendationDetailScreenProps {
   onBackToHome: () => void;
 }
 
 const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreenProps) => {
   return (
-    <div className="min-h-screen bg-surface text-on-surface pb-32">
-      <header className="fixed top-0 w-full z-50 bg-[#f7f9fb]">
-        <div className="mx-auto max-w-2xl px-6 py-4 flex justify-between items-center w-full">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="material-symbols-outlined text-[#000d22]"
-              aria-label="Back to home"
-              onClick={onBackToHome}
-            >
-              menu
-            </button>
-            <h1 className="font-heading font-bold tracking-tight uppercase text-lg text-[#000d22] !my-0">
-              Sugbo-Move Lite
-            </h1>
-          </div>
+    <div className="min-h-screen bg-surface text-on-surface flex flex-col">
+      <AppHeader onMenuClick={onBackToHome} />
 
-          <div className="w-10 h-10 rounded-full bg-surface-container-high border-2 border-primary overflow-hidden">
-            <img
-              alt="User profile"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvC1E4h5lFSnFC56r5RhVzIv2PIi-zT6CmOTVoV6dfWX20m_N9B0W9e_5MovavoPGyeLboUySjRaPAh55rmLgSxuWO1dCmOTIPz_DlZqwxcfttk_eKg1bK4cHakX0aSvL9cno8LM-UWndMnNzZuQlBOqomvP2WdLW7ElTf9FKfF_Z0QBX81n_5i0G9yLF8trEQZWS9Pon1oTrM2MT7EGwJ7YGcxisLmnDFZIzWb49ypRH-yw8UladFD0sicSPJhu9DZdejybXAgt21"
-            />
-          </div>
-        </div>
-      </header>
-
-      <main className="pt-24 px-6 max-w-2xl mx-auto space-y-8">
+      <main className="flex-1 px-6 max-w-2xl mx-auto space-y-8 pt-6">
         <section className="space-y-4">
           <div className="inline-flex items-center px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed rounded-full text-[10px] font-label font-bold tracking-widest uppercase">
             Optimized Choice
@@ -127,28 +107,7 @@ const RecommendationDetailScreen = ({ onBackToHome }: RecommendationDetailScreen
         </section>
       </main>
 
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white border-t border-[#e6e8ea]/15 shadow-[0_-4px_24px_rgba(0,13,34,0.06)] rounded-t-2xl">
-        <button
-          type="button"
-          className="flex flex-col items-center justify-center text-[#c4c6cf] py-2 px-4"
-          onClick={onBackToHome}
-        >
-          <span className="material-symbols-outlined">explore</span>
-          <span className="font-label text-[10px] font-bold uppercase tracking-widest mt-1">Explore</span>
-        </button>
-        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-[#000d22] to-[#0a2342] text-white rounded-xl py-2 px-4 shadow-lg">
-          <span className="material-symbols-outlined">directions_car</span>
-          <span className="font-label text-[10px] font-bold uppercase tracking-widest mt-1">Routes</span>
-        </div>
-        <div className="flex flex-col items-center justify-center text-[#c4c6cf] py-2 px-4">
-          <span className="material-symbols-outlined">payments</span>
-          <span className="font-label text-[10px] font-bold uppercase tracking-widest mt-1">Savings</span>
-        </div>
-        <div className="flex flex-col items-center justify-center text-[#c4c6cf] py-2 px-4">
-          <span className="material-symbols-outlined">person</span>
-          <span className="font-label text-[10px] font-bold uppercase tracking-widest mt-1">Profile</span>
-        </div>
-      </nav>
+      <AppBottomNav activeTab="routes" onExplore={onBackToHome} />
     </div>
   );
 };

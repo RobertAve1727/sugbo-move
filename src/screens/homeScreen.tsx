@@ -1,29 +1,16 @@
+import AppBottomNav from "../components/layout/AppBottomNav";
+import AppHeader from "../components/layout/AppHeader";
+
 interface HomeScreenProps {
   onFindBestRoute: () => void;
 }
 
 const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
   return (
-    <div className="bg-surface font-body text-on-surface min-h-screen selection:bg-primary selection:text-on-primary">
-      <header className="bg-[#f7f9fb] fixed top-0 w-full z-50 flex justify-between items-center px-6 py-4">
-        <div className="flex items-center gap-4">
-          <button type="button" className="text-[#000d22] hover:opacity-80 transition-opacity" aria-label="Open menu">
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <h1 className="text-lg font-extrabold tracking-tighter text-[#000d22] font-[Plus_Jakarta_Sans] uppercase !my-0">
-            Sugbo-Move Lite
-          </h1>
-        </div>
+    <div className="bg-surface font-body text-on-surface min-h-screen flex flex-col selection:bg-primary selection:text-on-primary">
+      <AppHeader />
 
-        <div className="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border-2 border-primary/10">
-          <img
-            alt="User profile"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvmtNpLMgtih5wtg0kIF7FTmfe_I84XiL_b3cvXGL5PB5gRzMgXf4tLn5AV5kYuyU_94IdJiqs5z9F0kWSNYxrU4Vi6XzaPH85VyprujVJdcl-x_AtLCrItyMm7knzmz9vzlDEqp8g0koLyNpg1wWQpUid0lmkKhumCHvCDmYhRMJBtkF9z26jx-OL87Es0z1BWWGzLPoF-nvo-m_NuiTBCAhKKv7OhXMvzvH3QKgIO3R4zE7GZCemihzng92LsCDv_RsrhsLfFuFQ"
-          />
-        </div>
-      </header>
-
-      <main className="min-h-screen pt-20 pb-32">
+      <main className="flex-1 pb-8">
         <div className="fixed inset-0 z-0 opacity-40 grayscale pointer-events-none">
           <img
             alt="Cebu map background"
@@ -149,40 +136,7 @@ const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
         </section>
       </main>
 
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white shadow-[0_-4px_24px_rgba(0,13,34,0.06)] border-t border-[#e6e8ea]/15 rounded-t-2xl">
-        <button
-          type="button"
-          className="flex flex-col items-center justify-center bg-gradient-to-br from-[#000d22] to-[#0a2342] text-white rounded-xl py-2 px-4 shadow-lg transition-all duration-300 ease-in-out active:scale-90"
-        >
-          <span className="material-symbols-outlined">explore</span>
-          <span className="font-[Inter] text-[10px] font-bold uppercase tracking-widest mt-1">Explore</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onFindBestRoute}
-          className="flex flex-col items-center justify-center text-[#c4c6cf] py-2 px-4 hover:text-[#000d22] transition-all duration-300 ease-in-out active:scale-90"
-        >
-          <span className="material-symbols-outlined">directions_car</span>
-          <span className="font-[Inter] text-[10px] font-bold uppercase tracking-widest mt-1">Routes</span>
-        </button>
-
-        <button
-          type="button"
-          className="flex flex-col items-center justify-center text-[#c4c6cf] py-2 px-4 hover:text-[#000d22] transition-all duration-300 ease-in-out active:scale-90"
-        >
-          <span className="material-symbols-outlined">payments</span>
-          <span className="font-[Inter] text-[10px] font-bold uppercase tracking-widest mt-1">Savings</span>
-        </button>
-
-        <button
-          type="button"
-          className="flex flex-col items-center justify-center text-[#c4c6cf] py-2 px-4 hover:text-[#000d22] transition-all duration-300 ease-in-out active:scale-90"
-        >
-          <span className="material-symbols-outlined">person</span>
-          <span className="font-[Inter] text-[10px] font-bold uppercase tracking-widest mt-1">Profile</span>
-        </button>
-      </nav>
+      <AppBottomNav activeTab="explore" onRoutes={onFindBestRoute} />
     </div>
   );
 };
