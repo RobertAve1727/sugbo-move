@@ -197,7 +197,7 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
             </div>
             <p className="mt-3 text-xs font-semibold text-white/75">
               {recommendedRoute
-                ? `${recommendedRoute.co2Kg.toFixed(2)} kg CO2 (${tripRequest.vehicleLabel ?? "selected vehicle"})`
+                ? `${recommendedRoute.co2Kg.toFixed(2)} kg CO2 for ${tripRequest.vehicleLabel ?? "selected vehicle"}`
                 : "Calculating CO2"}
             </p>
           </div>

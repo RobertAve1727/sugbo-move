@@ -85,7 +85,7 @@ const App: React.FC = () => {
           onTripDraftChange={setTripRequest}
           onFindBestRoute={(trip) => {
             setTripRequest(trip);
-            setActiveTab("routes");
+            setActiveTab("recos");
           }}
         />
       )}
@@ -93,6 +93,8 @@ const App: React.FC = () => {
       {activeTab === "recos" && (
         <RecommendationDetailScreen
           onBackToHome={() => setActiveTab("explore")}
+          onStartRoute={() => setActiveTab("routes")}
+          onViewAlternativeRoutes={() => setActiveTab("routes")}
           tripRequest={tripRequest}
           routeData={routeData}
           isLoading={routeDataLoading}

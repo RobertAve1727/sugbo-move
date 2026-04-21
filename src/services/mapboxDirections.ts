@@ -8,6 +8,7 @@ export type RouteScenario = {
   distanceKm: number;
   durationMin: number;
   fuelCostPhp: number;
+  fuelConsumedUnits?: number;
   co2Kg: number;
   geometry: [number, number][];
 };

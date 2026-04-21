@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import AppBottomNav from "../components/layout/AppBottomNav";
 import AppHeader from "../components/layout/AppHeader";
 import type { RouteComparisonResult } from "../services/mapboxDirections";
@@ -12,6 +12,8 @@ import type { TripRequest } from "../types/trip";
 
 interface RecommendationDetailScreenProps {
   onBackToHome: () => void;
+  onStartRoute: (action: "wait" | "goNow") => void;
+  onViewAlternativeRoutes: () => void;
   tripRequest: TripRequest;
   routeData: RouteComparisonResult | null;
   isLoading: boolean;
@@ -20,11 +22,16 @@ interface RecommendationDetailScreenProps {
 
 const RecommendationDetailScreen = ({
   onBackToHome,
+  onStartRoute,
+  onViewAlternativeRoutes,
   tripRequest,
   routeData,
   isLoading,
   loadError,
 }: RecommendationDetailScreenProps) => {
+  const [selectedAction, setSelectedAction] = useState<"wait" | "goNow">(
+    "goNow",
+  );
   const baseRoutes = routeData?.routes?.length
     ? routeData.routes
     : fallbackRoutes;
@@ -54,14 +61,41 @@ const RecommendationDetailScreen = ({
 
   const isCongested =
     (directRoute?.durationMin ?? 0) > (recommendedRoute?.durationMin ?? 0);
+  const goNowFuelCostPhp = directRoute?.fuelCostPhp ?? 0;
+  const alternativeFuelCostPhp =
+    alternativeRoute?.fuelCostPhp ?? recommendedRoute?.fuelCostPhp ?? 0;
+  const congestionGapRatio =
+    directRoute && recommendedRoute
+      ? Math.max(
+          0,
+          (directRoute.durationMin - recommendedRoute.durationMin) /
+            Math.max(1, directRoute.durationMin),
+        )
+      : 0;
+  const waitFuelReductionPct = isCongested
+    ? Math.min(25, Math.max(8, congestionGapRatio * 100 * 0.9))
+    : 5;
+  const waitModeFuelCostPhp = Math.max(
+    0,
+    Math.round(goNowFuelCostPhp * (1 - waitFuelReductionPct / 100)),
+  );
   const suggestedWaitMinutes = Math.max(
     10,
     (directRoute?.durationMin ?? 0) - (recommendedRoute?.durationMin ?? 0),
   );
-  const estimatedSavings = Math.max(
+  const waitModeSavingsPhp = Math.max(
     0,
-    (directRoute?.fuelCostPhp ?? 0) - (recommendedRoute?.fuelCostPhp ?? 0),
+    goNowFuelCostPhp - waitModeFuelCostPhp,
   );
+  const fuelSmartSavingsPhp = Math.max(
+    0,
+    goNowFuelCostPhp - alternativeFuelCostPhp,
+  );
+
+  const startRouteCtaLabel =
+    selectedAction === "wait"
+      ? `Start Route (Wait ${suggestedWaitMinutes} mins)`
+      : "Start Route (Go Now)";
 
   const resolvedOrigin = routeData?.origin ?? tripRequest.origin;
   const resolvedDestination = routeData?.destination ?? tripRequest.destination;
@@ -108,8 +142,7 @@ const RecommendationDetailScreen = ({
             </div>
 
             <p className="text-xs font-semibold text-[#60778f]">
-              CO2 Emission:{" "}
-              {directRoute ? `${directRoute.co2Kg.toFixed(2)} kg` : "..."}
+              CO2 Emission: {directRoute ? `${directRoute.co2Kg.toFixed(2)} kg` : "..."}
             </p>
 
             {/* Minimal Map Strip for context */}
@@ -140,82 +173,75 @@ const RecommendationDetailScreen = ({
               Tactical Recommendations
             </h3>
           </div>
+          <div className="bg-[#e8eef5] rounded-2xl px-4 py-3 border border-[#d8e1ea]">
+            <p className="text-[11px] font-semibold text-[#001d3d] leading-tight">
+              Is it better to go now, wait, or take a different route?
+            </p>
+            <p className="text-[10px] text-[#60778f] mt-1">
+              Baseline now:{" "}
+              <span className="font-bold">₱{goNowFuelCostPhp}</span> fuel
+              estimate on {directRoute?.name ?? "Direct Route"}.
+            </p>
+          </div>
 
-          {isCongested ? (
-            <div className="space-y-4">
-              {/* WAIT MODE: Direct Route + Timing */}
-              <div className="bg-white rounded-[24px] p-5 border-2 border-[#001d3d] relative shadow-md">
-                <div className="absolute -top-3 left-6 bg-[#001d3d] text-white px-3 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tighter">
-                  Wait Mode (Recommended)
-                </div>
-                <div className="flex justify-between items-start pt-2">
-                  <div>
-                    <h4 className="text-base font-bold text-[#001d3d]">
-                      Delayed Entry: +{suggestedWaitMinutes} mins
-                    </h4>
-                    <p className="text-[11px] text-[#60778f] leading-tight mt-1">
-                      Stick to the{" "}
-                      <span className="font-bold text-[#001d3d]">
-                        {directRoute?.name ?? "Direct Route"}
-                      </span>
-                      , but wait {suggestedWaitMinutes} mins <br />
-                      to bypass the peak congestion wave.
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-[#2ecc71]">
-                      -₱{estimatedSavings}
-                    </p>
-                    <p className="text-[10px] font-bold text-gray-400">
-                      SAVINGS
-                    </p>
-                  </div>
-                </div>
+          <div className="space-y-4 mt-4">
+            <div className="bg-white rounded-[24px] p-5 border-2 border-[#001d3d] relative shadow-md">
+              <div className="absolute -top-3 left-6 bg-[#001d3d] text-white px-3 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tighter">
+                Wait Mode (Delay Entry Option)
               </div>
-
-              {/* FUEL-SMART: Alternative Path */}
-              <div className="bg-[#00391c] rounded-[24px] p-5 shadow-lg">
-                <div className="flex justify-between mb-2">
-                  <span className="text-[9px] font-bold text-[#b4f9c8] uppercase tracking-widest">
-                    Fuel-Smart Pivot
-                  </span>
-                  <span className="text-[9px] font-bold text-white bg-white/10 px-2 py-0.5 rounded">
-                    Go Now
-                  </span>
+              <div className="flex justify-between items-start pt-2">
+                <div>
+                  <h4 className="text-base font-bold text-[#001d3d]">
+                    Delay Entry: +{suggestedWaitMinutes} mins
+                  </h4>
+                  <p className="text-[11px] text-[#60778f] leading-tight mt-1">
+                    Enter later when congestion eases to reduce stop-and-go fuel
+                    waste.
+                  </p>
+                  <p className="text-[10px] text-[#001d3d] font-semibold mt-2">
+                    Estimated fuel cost: ₱{waitModeFuelCostPhp}
+                  </p>
                 </div>
-                <div className="flex justify-between items-end">
-                  <div>
-                    <h4 className="text-base font-bold text-white">
-                      {alternativeRoute?.corridor ??
-                        recommendedRoute?.corridor ??
-                        "Best Alternative"}
-                    </h4>
-                    <p className="text-[11px] text-[#b4f9c8]/70">
-                      {recommendedRoute
-                        ? `${recommendedRoute.trafficLabel}, ₱${recommendedRoute.fuelCostPhp} fuel cost.`
-                        : "Live route metrics loading..."}
-                    </p>
-                  </div>
-                  <span className="material-symbols-outlined text-white/50">
-                    arrow_forward_ios
-                  </span>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-[#2ecc71]">
+                    -₱{waitModeSavingsPhp}
+                  </p>
+                  <p className="text-[10px] font-bold text-gray-400">
+                    VS GO NOW
+                  </p>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="bg-[#b4f9c8]/20 rounded-[24px] p-8 border-2 border-dashed border-[#b4f9c8] text-center">
-              <span className="material-symbols-outlined text-[#00391c] text-3xl mb-2">
-                verified
-              </span>
-              <h4 className="text-sm font-bold text-[#00391c]">
-                {recommendedRoute?.name ?? "Direct Route"} is Optimal
-              </h4>
-              <p className="text-[11px] text-[#00391c]/60 mt-1">
-                Proceed immediately for maximum fuel efficiency and lowest
-                travel time.
-              </p>
+
+            <div className="bg-[#00391c] rounded-[24px] p-5 shadow-lg">
+              <div className="flex justify-between mb-2">
+                <span className="text-[9px] font-bold text-[#b4f9c8] uppercase tracking-widest">
+                  Fuel-Smart Mode (Immediate Action Option)
+                </span>
+                <span className="text-[9px] font-bold text-white bg-white/10 px-2 py-0.5 rounded">
+                  Go Now
+                </span>
+              </div>
+              <div className="flex justify-between items-end">
+                <div>
+                  <h4 className="text-base font-bold text-white">
+                    {alternativeRoute?.corridor ??
+                      recommendedRoute?.corridor ??
+                      "Best Alternative"}
+                  </h4>
+                  <p className="text-[11px] text-[#b4f9c8]/70">
+                    Estimated fuel cost: ₱{alternativeFuelCostPhp}
+                  </p>
+                  <p className="text-[10px] text-[#b4f9c8] font-semibold mt-2">
+                    Savings vs go now: ₱{fuelSmartSavingsPhp}
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-white/50">
+                  arrow_forward_ios
+                </span>
+              </div>
             </div>
-          )}
+          </div>
         </section>
 
         {isLoading && (
@@ -226,10 +252,55 @@ const RecommendationDetailScreen = ({
 
         {/* 3. EXECUTION FOOTER */}
         <section className="pt-6 pb-12">
-          <button className="w-full bg-[#001d3d] text-white py-5 rounded-2xl font-bold text-lg shadow-xl active:scale-[0.98] flex items-center justify-center gap-3 transition-all">
-            <span className="material-symbols-outlined">directions_run</span>
-            Execute Selected Strategy
-          </button>
+          <div className="bg-white rounded-2xl border border-[#d8e1ea] p-4 mb-4">
+            <p className="text-[10px] font-bold text-[#60778f] uppercase tracking-widest mb-3">
+              Choose Your Action
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedAction("wait")}
+                className={`py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${
+                  selectedAction === "wait"
+                    ? "bg-[#001d3d] text-white"
+                    : "bg-[#eef3f8] text-[#60778f]"
+                }`}
+              >
+                Wait Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedAction("goNow")}
+                className={`py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${
+                  selectedAction === "goNow"
+                    ? "bg-[#00391c] text-white"
+                    : "bg-[#eef3f8] text-[#60778f]"
+                }`}
+              >
+                Go Now
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => onStartRoute(selectedAction)}
+              className="w-full bg-[#001d3d] text-white py-4 rounded-2xl font-bold text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-3 transition-all"
+            >
+              <span className="material-symbols-outlined">directions_run</span>
+              {startRouteCtaLabel}
+            </button>
+
+            <button
+              type="button"
+              onClick={onViewAlternativeRoutes}
+              className="w-full bg-white text-[#001d3d] py-4 rounded-2xl font-bold text-sm border-2 border-[#001d3d] active:scale-[0.98] flex items-center justify-center gap-3 transition-all"
+            >
+              <span className="material-symbols-outlined">alt_route</span>
+              View Alternative Routes
+            </button>
+          </div>
 
           <div className="mt-6 flex items-center gap-3 px-2">
             <div className="w-8 h-8 rounded-full bg-[#e9eef2] flex items-center justify-center">
