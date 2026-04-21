@@ -35,6 +35,11 @@ interface RouteComparisonScreenProps {
   routeData: RouteComparisonResult | null;
   isLoading: boolean;
   loadError: string | null;
+  initialSelectedRouteId?: RouteScenario["id"] | null;
+  onStartRoute: (payload: {
+    routeName: string;
+    routeGeometry: [number, number][];
+  }) => void;
 }
 
 const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
@@ -42,6 +47,8 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
   routeData,
   isLoading,
   loadError,
+  initialSelectedRouteId,
+  onStartRoute,
 }) => {
   const [selectedRouteId, setSelectedRouteId] = useState<
     RouteScenario["id"] | null
@@ -63,10 +70,16 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
   );
 
   useEffect(() => {
+    if (initialSelectedRouteId) {
+      setSelectedRouteId(initialSelectedRouteId);
+      return;
+    }
+
     if (recommendedRoute && !selectedRouteId) {
       setSelectedRouteId(recommendedRoute.id);
     }
   }, [
+    initialSelectedRouteId,
     recommendedRoute,
     selectedRouteId,
     tripRequest.origin,
@@ -326,7 +339,17 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                   </p>
 
                   <button
-                    onClick={() => setSelectedRouteId(route.id)}
+                    onClick={() => {
+                      if (isSelected) {
+                        onStartRoute({
+                          routeName: route.name,
+                          routeGeometry: route.geometry,
+                        });
+                        return;
+                      }
+
+                      setSelectedRouteId(route.id);
+                    }}
                     className={`w-full py-4 rounded-xl font-bold uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2 ${
                       isSelected
                         ? "bg-[#04162e] text-white"

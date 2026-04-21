@@ -2,18 +2,35 @@ import React from "react";
 import HomeScreen from "./screens/homeScreen";
 import RecommendationDetailScreen from "./screens/recommendationDetailScreen";
 import RouteComparisonScreen from "./screens/routeComparisonScreen";
+import NavigationScreen from "./screens/navigationScreen";
 import AppBottomNav from "./components/layout/AppBottomNav";
 import type { TripRequest } from "./types/trip";
 import {
   fetchTrafficRouteComparisons,
   type RouteComparisonResult,
+  type RouteScenario,
 } from "./services/mapboxDirections";
 import { fallbackRoutes } from "./services/fallbackRoutes";
 
 type Tab = "explore" | "recos" | "routes" | "profile";
 
+type NavigationSource = "recos" | "routes";
+
+type NavigationContext = {
+  source: NavigationSource;
+  action: "wait" | "goNow";
+  routeName?: string;
+  routeGeometry?: [number, number][];
+};
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<Tab>("explore");
+  const [isNavigationOpen, setIsNavigationOpen] = React.useState(false);
+  const [preferredRouteId, setPreferredRouteId] = React.useState<
+    RouteScenario["id"] | null
+  >(null);
+  const [navigationContext, setNavigationContext] =
+    React.useState<NavigationContext | null>(null);
   const [tripRequest, setTripRequest] = React.useState<TripRequest>({
     origin: "",
     destination: "",
@@ -32,7 +49,7 @@ const App: React.FC = () => {
   );
 
   React.useEffect(() => {
-    if (activeTab === "explore") {
+    if (activeTab !== "recos" && activeTab !== "routes") {
       return;
     }
 
@@ -79,7 +96,7 @@ const App: React.FC = () => {
   return (
     <main id="app-root" className="flex min-h-dvh w-full flex-col">
       {/* SCREEN SWITCH */}
-      {activeTab === "explore" && (
+      {!isNavigationOpen && activeTab === "explore" && (
         <HomeScreen
           tripRequest={tripRequest}
           onTripDraftChange={setTripRequest}
@@ -90,11 +107,22 @@ const App: React.FC = () => {
         />
       )}
 
-      {activeTab === "recos" && (
+      {!isNavigationOpen && activeTab === "recos" && (
         <RecommendationDetailScreen
           onBackToHome={() => setActiveTab("explore")}
-          onStartRoute={() => setActiveTab("routes")}
-          onViewAlternativeRoutes={() => setActiveTab("routes")}
+          onStartRoute={(payload) => {
+            setNavigationContext({
+              source: "recos",
+              action: payload.action,
+              routeName: payload.routeName,
+              routeGeometry: payload.routeGeometry,
+            });
+            setIsNavigationOpen(true);
+          }}
+          onViewAlternativeRoutes={(routeId) => {
+            setPreferredRouteId(routeId);
+            setActiveTab("routes");
+          }}
           tripRequest={tripRequest}
           routeData={routeData}
           isLoading={routeDataLoading}
@@ -102,27 +130,47 @@ const App: React.FC = () => {
         />
       )}
 
-      {activeTab === "routes" && (
+      {!isNavigationOpen && activeTab === "routes" && (
         <RouteComparisonScreen
           tripRequest={tripRequest}
           routeData={routeData}
           isLoading={routeDataLoading}
           loadError={routeDataError}
+          initialSelectedRouteId={preferredRouteId}
+          onStartRoute={(payload) => {
+            setNavigationContext({
+              source: "routes",
+              action: "goNow",
+              routeName: payload.routeName,
+              routeGeometry: payload.routeGeometry,
+            });
+            setIsNavigationOpen(true);
+          }}
         />
       )}
 
-      {activeTab === "profile" && (
+      {isNavigationOpen && (
+        <NavigationScreen
+          tripRequest={tripRequest}
+          navigationContext={navigationContext}
+          onBack={() => setIsNavigationOpen(false)}
+        />
+      )}
+
+      {!isNavigationOpen && activeTab === "profile" && (
         <div className="p-6">Profile Screen (placeholder)</div>
       )}
 
       {/* BOTTOM NAV */}
-      <AppBottomNav
-        activeTab={activeTab}
-        onExplore={() => setActiveTab("explore")}
-        onRecos={() => setActiveTab("recos")}
-        onRoutes={() => setActiveTab("routes")}
-        onProfile={() => setActiveTab("profile")}
-      />
+      {!isNavigationOpen && (
+        <AppBottomNav
+          activeTab={activeTab}
+          onExplore={() => setActiveTab("explore")}
+          onRecos={() => setActiveTab("recos")}
+          onRoutes={() => setActiveTab("routes")}
+          onProfile={() => setActiveTab("profile")}
+        />
+      )}
     </main>
   );
 };

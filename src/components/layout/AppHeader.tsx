@@ -15,7 +15,7 @@ const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
           <span className="material-symbols-outlined">menu</span>
         </button>
         <h1 className="text-lg font-extrabold tracking-tighter text-[#000d22] font-[Plus_Jakarta_Sans] uppercase !my-0">
-          Sugbo-Move Lite
+          Dalan
         </h1>
       </div>
 

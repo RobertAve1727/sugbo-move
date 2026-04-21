@@ -12,8 +12,12 @@ import type { TripRequest } from "../types/trip";
 
 interface RecommendationDetailScreenProps {
   onBackToHome: () => void;
-  onStartRoute: (action: "wait" | "goNow") => void;
-  onViewAlternativeRoutes: () => void;
+  onStartRoute: (payload: {
+    action: "wait" | "goNow";
+    routeName: string;
+    routeGeometry: [number, number][];
+  }) => void;
+  onViewAlternativeRoutes: (routeId: "routeA" | "routeB" | "routeC") => void;
   tripRequest: TripRequest;
   routeData: RouteComparisonResult | null;
   isLoading: boolean;
@@ -59,8 +63,7 @@ const RecommendationDetailScreen = ({
     [directRoute?.id, displayRoutes],
   );
 
-  const isCongested =
-    (directRoute?.durationMin ?? 0) > (recommendedRoute?.durationMin ?? 0);
+  const isCongested = directRoute?.trafficLabel === "Heavy Traffic";
   const goNowFuelCostPhp = directRoute?.fuelCostPhp ?? 0;
   const alternativeFuelCostPhp =
     alternativeRoute?.fuelCostPhp ?? recommendedRoute?.fuelCostPhp ?? 0;
@@ -100,6 +103,16 @@ const RecommendationDetailScreen = ({
   const resolvedOrigin = routeData?.origin ?? tripRequest.origin;
   const resolvedDestination = routeData?.destination ?? tripRequest.destination;
 
+  const selectedNavigationRoute =
+    selectedAction === "wait"
+      ? directRoute
+      : (alternativeRoute ?? recommendedRoute ?? directRoute);
+
+  const bestAlternativeRoute =
+    alternativeRoute ??
+    recommendedRoute ??
+    displayRoutes.find((route) => route.id !== directRoute?.id);
+
   return (
     <div className="min-h-dvh bg-[#f0f4f8] text-[#1a1c1e] flex flex-1 flex-col w-full">
       <AppHeader onMenuClick={onBackToHome} />
@@ -126,40 +139,57 @@ const RecommendationDetailScreen = ({
             {resolvedOrigin} to {resolvedDestination}
           </p>
 
-          <div className="bg-white rounded-[24px] p-5 shadow-sm border border-[#e9eef2] space-y-4">
+          <div
+            className="bg-white p-6 rounded-3xl border-l-[6px] shadow-sm"
+            style={{ borderLeftColor: "#facc15" }}
+          >
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`w-3 h-3 rounded-full ${isCongested ? "bg-red-500 animate-pulse" : "bg-[#2ecc71]"}`}
-                />
-                <span className="text-sm font-bold text-[#001d3d]">
-                  {isCongested ? "Heavy Congestion Detected" : "Optimal Flow"}
-                </span>
+              <div>
+                <h4 className="text-2xl font-bold text-gray-900">
+                  {directRoute?.name ?? "Route A"}
+                </h4>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest mt-2">
+                  {directRoute?.corridor ?? "Direct Corridor"}
+                </p>
               </div>
-              <span className="text-lg font-black text-[#001d3d]">
-                {directRoute ? `₱${directRoute.fuelCostPhp}` : "..."}
+              <span
+                className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                  directRoute?.trafficLabel === "Heavy Traffic"
+                    ? "bg-red-100 text-red-700"
+                    : directRoute?.trafficLabel === "Moderate Traffic"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-green-100 text-green-700"
+                }`}
+              >
+                {directRoute?.trafficLabel ?? "Traffic"}
               </span>
             </div>
 
-            <p className="text-xs font-semibold text-[#60778f]">
-              CO2 Emission:{" "}
-              {directRoute ? `${directRoute.co2Kg.toFixed(2)} kg` : "..."}
-            </p>
-
-            {/* Minimal Map Strip for context */}
-            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
-              <div
-                className={`h-full ${isCongested ? "bg-red-500" : "bg-green-500"}`}
-                style={{
-                  width: `${Math.min(100, directRoute?.efficiencyScore ?? 0)}%`,
-                }}
-              />
-              <div
-                className="h-full bg-gray-200"
-                style={{
-                  width: `${100 - Math.min(100, directRoute?.efficiencyScore ?? 0)}%`,
-                }}
-              />
+            <div className="grid grid-cols-4 gap-3 mt-4 text-gray-400 uppercase text-[10px] font-bold tracking-widest">
+              <div>
+                Distance
+                <p className="text-base text-black lowercase mt-1">
+                  {directRoute?.distanceKm ?? "--"} km
+                </p>
+              </div>
+              <div>
+                Est. Time
+                <p className="text-base text-black lowercase mt-1">
+                  {directRoute?.durationMin ?? "--"} min
+                </p>
+              </div>
+              <div>
+                Fuel Cost
+                <p className="text-base text-black lowercase mt-1">
+                  ₱{directRoute?.fuelCostPhp ?? "--"}
+                </p>
+              </div>
+              <div>
+                CO2
+                <p className="text-base text-black lowercase mt-1">
+                  {directRoute ? `${directRoute.co2Kg.toFixed(2)} kg` : "--"}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -286,7 +316,26 @@ const RecommendationDetailScreen = ({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => onStartRoute(selectedAction)}
+              onClick={() => {
+                if (!selectedNavigationRoute) {
+                  return;
+                }
+
+                if (
+                  selectedAction === "goNow" &&
+                  isCongested &&
+                  bestAlternativeRoute
+                ) {
+                  onViewAlternativeRoutes(bestAlternativeRoute.id);
+                  return;
+                }
+
+                onStartRoute({
+                  action: selectedAction,
+                  routeName: selectedNavigationRoute.name,
+                  routeGeometry: selectedNavigationRoute.geometry,
+                });
+              }}
               className="w-full bg-[#001d3d] text-white py-4 rounded-2xl font-bold text-sm shadow-xl active:scale-[0.98] flex items-center justify-center gap-3 transition-all"
             >
               <span className="material-symbols-outlined">directions_run</span>
@@ -295,7 +344,14 @@ const RecommendationDetailScreen = ({
 
             <button
               type="button"
-              onClick={onViewAlternativeRoutes}
+              onClick={() =>
+                onViewAlternativeRoutes(
+                  (bestAlternativeRoute?.id ?? "routeB") as
+                    | "routeA"
+                    | "routeB"
+                    | "routeC",
+                )
+              }
               className="w-full bg-white text-[#001d3d] py-4 rounded-2xl font-bold text-sm border-2 border-[#001d3d] active:scale-[0.98] flex items-center justify-center gap-3 transition-all"
             >
               <span className="material-symbols-outlined">alt_route</span>
