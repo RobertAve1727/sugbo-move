@@ -1,3 +1,4 @@
+import { useState } from "react";
 import AppBottomNav from "../components/layout/AppBottomNav";
 import AppHeader from "../components/layout/AppHeader";
 
@@ -6,163 +7,199 @@ interface HomeScreenProps {
 }
 
 const HomeScreen = ({ onFindBestRoute }: HomeScreenProps) => {
-  return (
-    <div className="bg-surface font-body text-on-surface min-h-dvh flex flex-1 flex-col selection:bg-primary selection:text-on-primary w-full">
-      <AppHeader />
+  const [availableVehicles] = useState([
+    {
+      id: "v1",
+      nickname: "Toyota Vios",
+      type: "car",
+      plate: "GAB 1234",
+      efficiency: "15.4 km/L",
+      fuel: "Gasoline",
+    },
+    {
+      id: "v2",
+      nickname: "Honda Click",
+      type: "motorcycle",
+      plate: "VH 7890",
+      efficiency: "45.2 km/L",
+      fuel: "Gasoline",
+    },
+  ]);
 
-      <main className="flex-1 pb-28 md:pb-24 relative">
-        {/* Changed from fixed to absolute to stay within the screen context, or keep fixed if you want it static while scrolling */}
-        <div className="fixed inset-0 z-0 opacity-40 grayscale pointer-events-none">
-          <img
-            alt="Cebu map background"
-            className="w-full h-full object-cover"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTbbAu_kL_gdiTVbw-Xvao4vj0ndKZYR7RdbYwmxlat_AGXtluVOJT0Q5ik8FIou60sLGwswwVIYbJ0e4MzbQJ2xnqT54-LQ5E_nvxUTNysnwwM04li1KCJVU2gi33xa05sYUbWz2rcXqoo9qr8jFeMPCZA9YMlRV9QxL__8Biv5gvlBP7xT_7QLAQOm56S7bL-mfIhd43TObkHYEBOAMwlCFH3k6-MUXU2yPud9Uw3qVklA96I2sEkZFWHd12K9vkz2BYDRW7XLKO"
-          />
+  const [selectedVehicleId, setSelectedVehicleId] = useState("v1");
+
+  const recentTrips = [
+    {
+      id: 1,
+      destination: "IT Park, Lahug",
+      route: "Via Salinas Drive",
+      tag: "Efficient",
+      icon: "work",
+    },
+    {
+      id: 2,
+      destination: "Mactan Heights",
+      route: "Via CCLEX",
+      tag: "Fast",
+      icon: "home",
+    },
+    {
+      id: 3,
+      destination: "SM Seaside",
+      route: "Via SRP",
+      tag: "Eco",
+      icon: "shopping_bag",
+    },
+    {
+      id: 4,
+      destination: "Ayala Center",
+      route: "Via Arch. Reyes",
+      tag: "Efficient",
+      icon: "local_mall",
+    },
+    {
+      id: 5,
+      destination: "Cebu Doctors",
+      route: "Via Osmeña Blvd",
+      tag: "Fast",
+      icon: "medical_services",
+    },
+  ];
+
+  return (
+    // Removed overflow-hidden and h-dvh to allow natural body scrolling
+    <div className="bg-[#f0f4f8] font-body text-[#1a1c1e] min-h-screen flex flex-col w-full relative">
+      {/* HEADER: Full width, stays at top */}
+      <div className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
+        <AppHeader />
+      </div>
+
+      {/* BACKGROUND: Fixed so it doesn't move when you scroll the content */}
+      <div className="fixed inset-0 z-0 opacity-30 grayscale pointer-events-none">
+        <img
+          alt="Cebu map background"
+          className="w-full h-full object-cover"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTbbAu_kL_gdiTVbw-Xvao4vj0ndKZYR7RdbYwmxlat_AGXtluVOJT0Q5ik8FIou60sLGwswwVIYbJ0e4MzbQJ2xnqT54-LQ5E_nvxUTNysnwwM04li1KCJVU2gi33xa05sYUbWz2rcXqoo9qr8jFeMPCZA9YMlRV9QxL__8Biv5gvlBP7xT_7QLAQOm56S7bL-mfIhd43TObkHYEBOAMwlCFH3k6-MUXU2yPud9Uw3qVklA96I2sEkZFWHd12K9vkz2BYDRW7XLKO"
+        />
+      </div>
+
+      {/* MAIN CONTENT AREA: max-w-md keeps it from stretching on PC */}
+      <main className="relative z-10 flex-1 flex flex-col w-full max-w-md mx-auto px-6 pt-8 pb-32">
+        <div className="mb-6">
+          <h2 className="font-headline text-3xl leading-tight font-bold text-[#001d3d]">
+            Where are we <br />
+            <span className="text-[#60778f]">heading today?</span>
+          </h2>
         </div>
 
-        <section className="relative z-10 px-4 sm:px-6 w-full max-w-xl mx-auto text-left">
-          <div className="mt-8 mb-10">
-            <span className="font-label text-[10px] font-bold uppercase tracking-[0.2em] text-on-primary-container mb-2 block">
-              Cebu Tactical Navigator
-            </span>
-            <h2 className="font-headline text-4xl lg:text-5xl font-extrabold tracking-tighter text-primary leading-none mb-4 !my-0">
-              Plan Your
-              <br />
-              Movement.
-            </h2>
-            <p className="text-on-surface-variant font-body font-medium text-sm max-w-[280px] mt-2">
-              High-efficiency routing for the busy streets of Sugbo.
-            </p>
-          </div>
-
-          {/* Form Card */}
-          <div className="bg-white/85 backdrop-blur-[12px] rounded-xl p-6 shadow-[0_24px_40px_rgba(0,13,34,0.04)] mb-8">
-            <div className="space-y-4 relative">
-              <div className="absolute left-[19px] top-10 bottom-10 w-[2px] bg-surface-container-highest" />
-
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center z-10">
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    my_location
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <label className="block font-label text-[10px] font-bold uppercase tracking-wider text-outline mb-1">
-                    Origin
-                  </label>
-                  <input
-                    className="w-full bg-transparent border-0 border-b-2 border-surface-container-highest focus:border-primary focus:ring-0 font-body font-bold text-primary placeholder:text-outline-variant p-0 pb-1 transition-colors"
-                    placeholder="Current Location"
-                    type="text"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center z-10 shadow-lg shadow-primary/20">
-                  <span className="material-symbols-outlined text-white text-[20px]">
-                    location_on
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <label className="block font-label text-[10px] font-bold uppercase tracking-wider text-outline mb-1">
-                    Destination
-                  </label>
-                  <input
-                    className="w-full bg-transparent border-0 border-b-2 border-surface-container-highest focus:border-primary focus:ring-0 font-body font-bold text-primary placeholder:text-outline-variant p-0 pb-1 transition-colors"
-                    placeholder="Where to?"
-                    type="text"
-                  />
-                </div>
+        {/* Destination Card */}
+        <div className="bg-[#e9eef2]/90 backdrop-blur-sm rounded-[24px] p-5 mb-8 shadow-sm">
+          <div className="space-y-4 relative">
+            <div className="absolute left-[9px] top-6 bottom-6 w-[1.5px] bg-gray-400/30" />
+            <div className="flex items-center gap-4">
+              <div className="w-5 h-5 rounded-full border-4 border-[#001d3d] bg-white z-10" />
+              <div className="flex-1">
+                <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                  Origin
+                </span>
+                <input
+                  className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold focus:ring-1 focus:ring-[#001d3d]"
+                  defaultValue="IT Park, Lahug"
+                />
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={onFindBestRoute}
-              className="mt-10 w-full h-14 bg-gradient-to-br from-[#000d22] to-[#0a2342] text-white rounded-lg font-headline font-bold uppercase tracking-widest text-sm shadow-xl shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-            >
-              Find Best Route
-              <span className="material-symbols-outlined">trending_flat</span>
-            </button>
-          </div>
-
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-surface-container-lowest p-5 rounded-xl border border-surface-container-high">
-              <span className="material-symbols-outlined text-on-tertiary-container mb-3">
-                eco
-              </span>
-              <div className="font-headline text-2xl font-extrabold text-primary">
-                15.4 <span className="text-xs font-label">KM/L</span>
-              </div>
-              <div className="font-label text-[10px] font-bold uppercase tracking-tighter text-outline mt-1">
-                Target Efficiency
-              </div>
-            </div>
-            <div className="bg-surface-container-lowest p-5 rounded-xl border border-surface-container-high">
-              <span className="material-symbols-outlined text-primary mb-3">
-                schedule
-              </span>
-              <div className="font-headline text-2xl font-extrabold text-primary">
-                12 <span className="text-xs font-label">MIN</span>
-              </div>
-              <div className="font-label text-[10px] font-bold uppercase tracking-tighter text-outline mt-1">
-                Avg. Savings
+            <div className="flex items-center gap-4">
+              <div className="w-5 h-5 bg-[#001d3d] rounded-sm z-10" />
+              <div className="flex-1">
+                <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                  Destination
+                </span>
+                <input
+                  className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold"
+                  placeholder="Search destination..."
+                />
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Recent Trips Section */}
-          <div className="mt-8">
-            <h3 className="font-label text-[11px] font-bold uppercase tracking-widest text-outline mb-4 flex items-center gap-2 !my-0">
-              Recent Trips
-              <div className="h-[1px] flex-1 bg-surface-container-high" />
-            </h3>
-            <div className="space-y-3 mt-4">
-              <div className="bg-surface-container-low p-4 rounded-lg flex items-center justify-between group hover:bg-surface-container-highest transition-colors cursor-pointer border border-transparent hover:border-surface-container-high">
-                <div className="flex items-center gap-4">
-                  <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">
-                    work
-                  </span>
+        {/* Vehicle Fleet: Still horizontal scrollable as it's a specific UI pattern */}
+        <div className="mb-8">
+          <h3 className="text-sm font-bold text-[#001d3d] mb-4">
+            Select Your Vehicle
+          </h3>
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {availableVehicles.map((vehicle) => (
+              <button
+                key={vehicle.id}
+                onClick={() => setSelectedVehicleId(vehicle.id)}
+                className={`flex flex-col min-w-[220px] p-4 rounded-2xl border-2 transition-all ${
+                  selectedVehicleId === vehicle.id
+                    ? "bg-white border-[#001d3d] shadow-md"
+                    : "bg-white/40 border-transparent text-gray-400"
+                }`}
+              >
+                <span className="material-symbols-outlined mb-2">
+                  {vehicle.type === "car" ? "directions_car" : "two_wheeler"}
+                </span>
+                <div className="text-sm font-bold text-[#001d3d]">
+                  {vehicle.nickname}
+                </div>
+                <div className="text-[10px] font-bold uppercase opacity-60">
+                  {vehicle.plate}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Find Best Route Button: Now sits in the flow of the page */}
+        <button
+          onClick={onFindBestRoute}
+          className="w-full h-14 bg-[#001d3d] text-white rounded-2xl font-bold uppercase tracking-widest text-sm shadow-xl mb-10 hover:bg-[#002d5d] active:scale-95 transition-all"
+        >
+          Find Best Route
+        </button>
+
+        {/* Recent Trips: NO MORE INTERNAL SCROLLBAR */}
+        <div className="flex flex-col">
+          <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+            Recent Trips
+          </h3>
+          <div className="space-y-3">
+            {recentTrips.map((trip) => (
+              <div
+                key={trip.id}
+                className="bg-white/80 p-4 rounded-xl flex justify-between items-center border border-gray-100 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-gray-400 text-[20px]">
+                      {trip.icon}
+                    </span>
+                  </div>
                   <div>
-                    <div className="font-body font-bold text-primary text-sm">
-                      IT Park Tower 1
+                    <div className="text-sm font-bold text-[#001d3d]">
+                      {trip.destination}
                     </div>
-                    <div className="font-label text-[10px] text-on-surface-variant uppercase">
-                      Via Salinas Drive
+                    <div className="text-[11px] text-gray-400 font-medium">
+                      {trip.route}
                     </div>
                   </div>
                 </div>
-                <div className="bg-tertiary-container px-2 py-1 rounded text-[10px] font-label font-bold text-on-tertiary-container tracking-wider uppercase">
-                  Efficient
+                <div className="text-[9px] font-bold px-2 py-1 bg-gray-100 rounded text-gray-500 uppercase">
+                  {trip.tag}
                 </div>
               </div>
-
-              <div className="bg-surface-container-low p-4 rounded-lg flex items-center justify-between group hover:bg-surface-container-highest transition-colors cursor-pointer border border-transparent hover:border-surface-container-high">
-                <div className="flex items-center gap-4">
-                  <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">
-                    home
-                  </span>
-                  <div>
-                    <div className="font-body font-bold text-primary text-sm">
-                      Mactan Heights
-                    </div>
-                    <div className="font-label text-[10px] text-on-surface-variant uppercase">
-                      Via CCLEX
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-primary">
-                  <span className="text-xs font-bold">FAST</span>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
       </main>
 
-      <AppBottomNav activeTab="explore" onRoutes={onFindBestRoute} />
+      {/* BOTTOM NAV: Full width, stays at bottom */}
+      <div className="w-full bg-white border-t border-gray-200 sticky bottom-0 z-50">
+        <AppBottomNav activeTab="explore" onRoutes={onFindBestRoute} />
+      </div>
     </div>
   );
 };
