@@ -15,14 +15,21 @@ type Tab = "explore" | "recos" | "routes" | "profile";
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<Tab>("explore");
   const [tripRequest, setTripRequest] = React.useState<TripRequest>({
-    origin: "IT Park, Lahug",
-    destination: "Mactan Newtown, Lapu-Lapu City",
+    origin: "",
+    destination: "",
     originCoord: null,
     destinationCoord: null,
+    vehicleType: "car",
+    fuelType: "gasoline",
+    efficiencyKmPerUnit: 15.4,
+    vehicleLabel: "Toyota Vios",
   });
-  const [routeData, setRouteData] = React.useState<RouteComparisonResult | null>(null);
+  const [routeData, setRouteData] =
+    React.useState<RouteComparisonResult | null>(null);
   const [routeDataLoading, setRouteDataLoading] = React.useState(false);
-  const [routeDataError, setRouteDataError] = React.useState<string | null>(null);
+  const [routeDataError, setRouteDataError] = React.useState<string | null>(
+    null,
+  );
 
   React.useEffect(() => {
     if (activeTab === "explore") {
@@ -33,7 +40,9 @@ const App: React.FC = () => {
       setRouteDataLoading(true);
 
       try {
-        const requestWithRetry = async (attempt = 0): Promise<RouteComparisonResult> => {
+        const requestWithRetry = async (
+          attempt = 0,
+        ): Promise<RouteComparisonResult> => {
           try {
             return await fetchTrafficRouteComparisons(tripRequest);
           } catch (error) {
@@ -56,7 +65,9 @@ const App: React.FC = () => {
           destination: tripRequest.destination,
           routes: fallbackRoutes,
         });
-        setRouteDataError("Unable to fetch live traffic. Showing local fallback estimates.");
+        setRouteDataError(
+          "Unable to fetch live traffic. Showing local fallback estimates.",
+        );
       } finally {
         setRouteDataLoading(false);
       }
@@ -67,7 +78,6 @@ const App: React.FC = () => {
 
   return (
     <main id="app-root" className="flex min-h-dvh w-full flex-col">
-      
       {/* SCREEN SWITCH */}
       {activeTab === "explore" && (
         <HomeScreen

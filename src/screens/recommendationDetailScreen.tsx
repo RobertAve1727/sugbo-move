@@ -3,7 +3,11 @@ import AppBottomNav from "../components/layout/AppBottomNav";
 import AppHeader from "../components/layout/AppHeader";
 import type { RouteComparisonResult } from "../services/mapboxDirections";
 import { fallbackRoutes } from "../services/fallbackRoutes";
-import { buildDisplayRoutes, getRecommendedRoute } from "../services/routeInsights";
+import {
+  buildDisplayRoutes,
+  getRecommendedRoute,
+} from "../services/routeInsights";
+import { applyVehicleMetrics } from "../services/vehicleMetrics";
 import type { TripRequest } from "../types/trip";
 
 interface RecommendationDetailScreenProps {
@@ -21,12 +25,22 @@ const RecommendationDetailScreen = ({
   isLoading,
   loadError,
 }: RecommendationDetailScreenProps) => {
-  const routes = routeData?.routes?.length ? routeData.routes : fallbackRoutes;
+  const baseRoutes = routeData?.routes?.length
+    ? routeData.routes
+    : fallbackRoutes;
+  const routes = useMemo(
+    () => applyVehicleMetrics(baseRoutes, tripRequest),
+    [baseRoutes, tripRequest],
+  );
   const displayRoutes = useMemo(() => buildDisplayRoutes(routes), [routes]);
-  const recommendedRoute = useMemo(() => getRecommendedRoute(displayRoutes), [displayRoutes]);
+  const recommendedRoute = useMemo(
+    () => getRecommendedRoute(displayRoutes),
+    [displayRoutes],
+  );
 
   const directRoute = useMemo(
-    () => displayRoutes.find((route) => route.id === "routeA") ?? displayRoutes[0],
+    () =>
+      displayRoutes.find((route) => route.id === "routeA") ?? displayRoutes[0],
     [displayRoutes],
   );
 
@@ -38,7 +52,8 @@ const RecommendationDetailScreen = ({
     [directRoute?.id, displayRoutes],
   );
 
-  const isCongested = (directRoute?.durationMin ?? 0) > (recommendedRoute?.durationMin ?? 0);
+  const isCongested =
+    (directRoute?.durationMin ?? 0) > (recommendedRoute?.durationMin ?? 0);
   const suggestedWaitMinutes = Math.max(
     10,
     (directRoute?.durationMin ?? 0) - (recommendedRoute?.durationMin ?? 0),
@@ -92,13 +107,25 @@ const RecommendationDetailScreen = ({
               </span>
             </div>
 
+            <p className="text-xs font-semibold text-[#60778f]">
+              CO2 Emission:{" "}
+              {directRoute ? `${directRoute.co2Kg.toFixed(2)} kg` : "..."}
+            </p>
+
             {/* Minimal Map Strip for context */}
             <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
               <div
                 className={`h-full ${isCongested ? "bg-red-500" : "bg-green-500"}`}
-                style={{ width: `${Math.min(100, directRoute?.efficiencyScore ?? 0)}%` }}
+                style={{
+                  width: `${Math.min(100, directRoute?.efficiencyScore ?? 0)}%`,
+                }}
               />
-              <div className="h-full bg-gray-200" style={{ width: `${100 - Math.min(100, directRoute?.efficiencyScore ?? 0)}%` }} />
+              <div
+                className="h-full bg-gray-200"
+                style={{
+                  width: `${100 - Math.min(100, directRoute?.efficiencyScore ?? 0)}%`,
+                }}
+              />
             </div>
           </div>
         </section>
@@ -136,7 +163,9 @@ const RecommendationDetailScreen = ({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-[#2ecc71]">-₱{estimatedSavings}</p>
+                    <p className="text-sm font-bold text-[#2ecc71]">
+                      -₱{estimatedSavings}
+                    </p>
                     <p className="text-[10px] font-bold text-gray-400">
                       SAVINGS
                     </p>
@@ -157,7 +186,9 @@ const RecommendationDetailScreen = ({
                 <div className="flex justify-between items-end">
                   <div>
                     <h4 className="text-base font-bold text-white">
-                      {alternativeRoute?.corridor ?? recommendedRoute?.corridor ?? "Best Alternative"}
+                      {alternativeRoute?.corridor ??
+                        recommendedRoute?.corridor ??
+                        "Best Alternative"}
                     </h4>
                     <p className="text-[11px] text-[#b4f9c8]/70">
                       {recommendedRoute
@@ -180,7 +211,8 @@ const RecommendationDetailScreen = ({
                 {recommendedRoute?.name ?? "Direct Route"} is Optimal
               </h4>
               <p className="text-[11px] text-[#00391c]/60 mt-1">
-                Proceed immediately for maximum fuel efficiency and lowest travel time.
+                Proceed immediately for maximum fuel efficiency and lowest
+                travel time.
               </p>
             </div>
           )}
@@ -207,8 +239,14 @@ const RecommendationDetailScreen = ({
             </div>
             <p className="text-[10px] text-[#60778f] leading-tight">
               Calculations adjusted for{" "}
-              <span className="font-bold">Toyota Vios</span> idling rate at
-              0.6L/hour.
+              <span className="font-bold">
+                {tripRequest.vehicleLabel ?? "selected vehicle"}
+              </span>{" "}
+              using{" "}
+              <span className="font-bold">
+                {tripRequest.fuelType ?? "gasoline"}
+              </span>{" "}
+              fuel profile.
             </p>
           </div>
         </section>

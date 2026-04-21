@@ -7,9 +7,16 @@ import type { LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-import type { RouteComparisonResult, RouteScenario } from "../services/mapboxDirections";
+import type {
+  RouteComparisonResult,
+  RouteScenario,
+} from "../services/mapboxDirections";
 import { fallbackRoutes } from "../services/fallbackRoutes";
-import { buildDisplayRoutes, getRecommendedRoute } from "../services/routeInsights";
+import {
+  buildDisplayRoutes,
+  getRecommendedRoute,
+} from "../services/routeInsights";
+import { applyVehicleMetrics } from "../services/vehicleMetrics";
 import type { TripRequest } from "../types/trip";
 
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -36,22 +43,40 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
   isLoading,
   loadError,
 }) => {
-  const [selectedRouteId, setSelectedRouteId] = useState<RouteScenario["id"] | null>(null);
-  const routes = routeData?.routes?.length ? routeData.routes : fallbackRoutes;
+  const [selectedRouteId, setSelectedRouteId] = useState<
+    RouteScenario["id"] | null
+  >(null);
+  const baseRoutes = routeData?.routes?.length
+    ? routeData.routes
+    : fallbackRoutes;
+  const routes = useMemo(
+    () => applyVehicleMetrics(baseRoutes, tripRequest),
+    [baseRoutes, tripRequest],
+  );
   const resolvedOrigin = routeData?.origin ?? tripRequest.origin;
   const resolvedDestination = routeData?.destination ?? tripRequest.destination;
 
   const displayRoutes = useMemo(() => buildDisplayRoutes(routes), [routes]);
-  const recommendedRoute = useMemo(() => getRecommendedRoute(displayRoutes), [displayRoutes]);
+  const recommendedRoute = useMemo(
+    () => getRecommendedRoute(displayRoutes),
+    [displayRoutes],
+  );
 
   useEffect(() => {
     if (recommendedRoute && !selectedRouteId) {
       setSelectedRouteId(recommendedRoute.id);
     }
-  }, [recommendedRoute, selectedRouteId, tripRequest.origin, tripRequest.destination]);
+  }, [
+    recommendedRoute,
+    selectedRouteId,
+    tripRequest.origin,
+    tripRequest.destination,
+  ]);
 
   const selectedRoute = useMemo(
-    () => displayRoutes.find((route) => route.id === selectedRouteId) ?? recommendedRoute,
+    () =>
+      displayRoutes.find((route) => route.id === selectedRouteId) ??
+      recommendedRoute,
     [displayRoutes, recommendedRoute, selectedRouteId],
   );
 
@@ -60,7 +85,8 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
       return [10.3157, 123.8854];
     }
 
-    const middlePoint = selectedRoute.geometry[Math.floor(selectedRoute.geometry.length / 2)];
+    const middlePoint =
+      selectedRoute.geometry[Math.floor(selectedRoute.geometry.length / 2)];
     return [middlePoint[1], middlePoint[0]];
   }, [selectedRoute]);
 
@@ -68,7 +94,9 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
     () =>
       displayRoutes.map((route) => ({
         id: route.id,
-        points: route.geometry.map((point) => [point[1], point[0]] as [number, number]),
+        points: route.geometry.map(
+          (point) => [point[1], point[0]] as [number, number],
+        ),
       })),
     [displayRoutes],
   );
@@ -146,7 +174,9 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
             </div>
 
             <h3 className="text-3xl font-bold mb-3 leading-snug">
-              {recommendedRoute ? `${recommendedRoute.name} is your ` : "Loading"}
+              {recommendedRoute
+                ? `${recommendedRoute.name} is your `
+                : "Loading"}
               <br />
               best bet today.
             </h3>
@@ -165,6 +195,11 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                 Estimated Fuel Cost
               </span>
             </div>
+            <p className="mt-3 text-xs font-semibold text-white/75">
+              {recommendedRoute
+                ? `${recommendedRoute.co2Kg.toFixed(2)} kg CO2 (${tripRequest.vehicleLabel ?? "selected vehicle"})`
+                : "Calculating CO2"}
+            </p>
           </div>
 
           <div className="bg-[#032b14] p-8 rounded-[2rem] flex flex-col items-center justify-center text-center">
@@ -200,7 +235,9 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                 />
               </svg>
               <span className="absolute text-3xl font-bold text-[#4ade80]">
-                {recommendedRoute ? `${recommendedRoute.efficiencyScore}%` : "--"}
+                {recommendedRoute
+                  ? `${recommendedRoute.efficiencyScore}%`
+                  : "--"}
               </span>
             </div>
 
@@ -233,7 +270,9 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                   style={{ borderLeftColor: routeAccent[route.id] }}
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <h4 className="text-2xl font-bold text-gray-900">{route.name}</h4>
+                    <h4 className="text-2xl font-bold text-gray-900">
+                      {route.name}
+                    </h4>
                     <div className="flex flex-col items-end gap-1">
                       {isRecommended && (
                         <span className="bg-green-400 text-black px-2 py-0.5 rounded text-[9px] font-black uppercase mb-1">
@@ -245,7 +284,7 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                           {route.trafficLabel}
                         </span>
                         <span className="bg-black text-green-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
-                          {route.co2DeltaLabel}
+                          {route.co2Kg.toFixed(2)} kg CO2
                         </span>
                       </div>
                     </div>
@@ -258,13 +297,17 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                   <div className="grid grid-cols-3 gap-4 mb-6 text-gray-400 uppercase text-[10px] font-bold tracking-widest">
                     <div>
                       Distance
-                      <p className="text-lg text-black lowercase mt-1">{route.distanceKm} km</p>
+                      <p className="text-lg text-black lowercase mt-1">
+                        {route.distanceKm} km
+                      </p>
                     </div>
                     <div>
                       Est. Time
                       <p
                         className={`text-lg lowercase mt-1 ${
-                          isRecommended ? "text-green-500 font-bold" : "text-black"
+                          isRecommended
+                            ? "text-green-500 font-bold"
+                            : "text-black"
                         }`}
                       >
                         {route.durationMin} min
@@ -272,9 +315,15 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                     </div>
                     <div>
                       Fuel Cost
-                      <p className="text-lg text-black lowercase mt-1">₱{route.fuelCostPhp}</p>
+                      <p className="text-lg text-black lowercase mt-1">
+                        ₱{route.fuelCostPhp}
+                      </p>
                     </div>
                   </div>
+
+                  <p className="text-xs font-semibold text-gray-500 mb-4">
+                    CO2 Emission: {route.co2Kg.toFixed(2)} kg
+                  </p>
 
                   <button
                     onClick={() => setSelectedRouteId(route.id)}
@@ -293,7 +342,8 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
 
           {!isLoading && displayRoutes.length === 0 && (
             <div className="bg-white p-6 rounded-3xl border border-red-200 shadow-sm text-sm text-red-500 font-medium">
-              No routes available. Check your origin/destination or Mapbox configuration.
+              No routes available. Check your origin/destination or Mapbox
+              configuration.
             </div>
           )}
         </section>

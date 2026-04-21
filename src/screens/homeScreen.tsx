@@ -5,7 +5,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import AppBottomNav from "../components/layout/AppBottomNav";
 import AppHeader from "../components/layout/AppHeader";
-import type { TripRequest } from "../types/trip";
+import type { FuelType, TripRequest, VehicleType } from "../types/trip";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
@@ -23,28 +23,92 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScreenProps) => {
-  const [availableVehicles] = useState([
+const cebuPlaces = [
+  "IT Park, Lahug",
+  "Ayala Center Cebu",
+  "SM City Cebu",
+  "SM Seaside City Cebu",
+  "Fuente Osmena Circle",
+  "Cebu Business Park",
+  "Mactan Newtown, Lapu-Lapu City",
+  "Mactan-Cebu International Airport",
+  "Colon Street, Cebu City",
+  "South Road Properties, Cebu",
+  "Cebu Doctors University Hospital",
+  "Chong Hua Hospital Cebu",
+  "Carbon Market, Cebu City",
+  "University of San Carlos - Talamban",
+  "Temple of Leah",
+  "Sirao Garden",
+  "Tops Lookout, Busay",
+  "Mandaue City Hall",
+  "Parkmall, Mandaue",
+  "Lapu-Lapu City Hall",
+];
+
+type VehicleOption = {
+  id: string;
+  nickname: string;
+  type: VehicleType;
+  plate: string;
+  efficiencyKmPerUnit: number;
+  fuelType: FuelType;
+};
+
+const HomeScreen = ({
+  tripRequest,
+  onTripDraftChange,
+  onFindBestRoute,
+}: HomeScreenProps) => {
+  const [availableVehicles] = useState<VehicleOption[]>([
     {
       id: "v1",
       nickname: "Toyota Vios",
       type: "car",
       plate: "GAB 1234",
-      efficiency: "15.4 km/L",
-      fuel: "Gasoline",
+      efficiencyKmPerUnit: 15.4,
+      fuelType: "gasoline",
     },
     {
       id: "v2",
       nickname: "Honda Click",
       type: "motorcycle",
       plate: "VH 7890",
-      efficiency: "45.2 km/L",
-      fuel: "Gasoline",
+      efficiencyKmPerUnit: 45.2,
+      fuelType: "gasoline",
+    },
+    {
+      id: "v3",
+      nickname: "Toyota Innova",
+      type: "car",
+      plate: "KAA 5512",
+      efficiencyKmPerUnit: 12.1,
+      fuelType: "diesel",
+    },
+    {
+      id: "v4",
+      nickname: "Nissan Leaf",
+      type: "car",
+      plate: "EV 2040",
+      efficiencyKmPerUnit: 6.8,
+      fuelType: "electric",
     },
   ]);
 
   const [selectedVehicleId, setSelectedVehicleId] = useState("v1");
-  const [mapPickMode, setMapPickMode] = useState<"origin" | "destination">("origin");
+  const [mapPickMode, setMapPickMode] = useState<"origin" | "destination">(
+    "origin",
+  );
+  const [activeSuggestionField, setActiveSuggestionField] = useState<
+    "origin" | "destination" | null
+  >(null);
+
+  const selectedVehicle = useMemo(
+    () =>
+      availableVehicles.find((vehicle) => vehicle.id === selectedVehicleId) ??
+      availableVehicles[0],
+    [availableVehicles, selectedVehicleId],
+  );
 
   const recentTrips = [
     {
@@ -97,6 +161,10 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
       destination: normalizedDestination,
       originCoord: tripRequest.originCoord ?? null,
       destinationCoord: tripRequest.destinationCoord ?? null,
+      vehicleType: selectedVehicle.type,
+      fuelType: selectedVehicle.fuelType,
+      efficiencyKmPerUnit: selectedVehicle.efficiencyKmPerUnit,
+      vehicleLabel: selectedVehicle.nickname,
     });
   };
 
@@ -105,26 +173,85 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
       return [tripRequest.originCoord.lat, tripRequest.originCoord.lng];
     }
     if (tripRequest.destinationCoord) {
-      return [tripRequest.destinationCoord.lat, tripRequest.destinationCoord.lng];
+      return [
+        tripRequest.destinationCoord.lat,
+        tripRequest.destinationCoord.lng,
+      ];
     }
     return [10.3157, 123.8854];
   }, [tripRequest.destinationCoord, tripRequest.originCoord]);
 
-  const formatPinnedLabel = (lat: number, lng: number): string =>
-    `Pinned (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+  const getFilteredSuggestions = (query: string) => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return cebuPlaces.slice(0, 6);
+    }
+
+    return cebuPlaces
+      .filter((place) => place.toLowerCase().includes(normalizedQuery))
+      .slice(0, 6);
+  };
+
+  const originSuggestions = useMemo(
+    () => getFilteredSuggestions(tripRequest.origin),
+    [tripRequest.origin],
+  );
+
+  const destinationSuggestions = useMemo(
+    () => getFilteredSuggestions(tripRequest.destination),
+    [tripRequest.destination],
+  );
+
+  const reverseGeocodeLabel = async (
+    lat: number,
+    lng: number,
+  ): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Reverse geocoding failed");
+      }
+
+      const data = (await response.json()) as {
+        display_name?: string;
+        name?: string;
+      };
+
+      return (
+        data.name?.trim() ||
+        data.display_name?.split(",")[0]?.trim() ||
+        "Pinned location"
+      );
+    } catch {
+      return "Pinned location";
+    }
+  };
 
   const MapClickHandler = () => {
     useMapEvents({
-      click: (event) => {
+      click: async (event) => {
         const nextCoord = {
           lat: event.latlng.lat,
           lng: event.latlng.lng,
         };
+        const placeLabel = await reverseGeocodeLabel(
+          nextCoord.lat,
+          nextCoord.lng,
+        );
 
         if (mapPickMode === "origin") {
           onTripDraftChange({
             ...tripRequest,
-            origin: formatPinnedLabel(nextCoord.lat, nextCoord.lng),
+            origin: placeLabel,
             originCoord: nextCoord,
           });
           return;
@@ -132,7 +259,7 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
 
         onTripDraftChange({
           ...tripRequest,
-          destination: formatPinnedLabel(nextCoord.lat, nextCoord.lng),
+          destination: placeLabel,
           destinationCoord: nextCoord,
         });
       },
@@ -142,14 +269,11 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
   };
 
   return (
-    // Removed overflow-hidden and h-dvh to allow natural body scrolling
     <div className="bg-[#f0f4f8] font-body text-[#1a1c1e] min-h-screen flex flex-col w-full relative">
-      {/* HEADER: Full width, stays at top */}
       <div className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
         <AppHeader />
       </div>
 
-      {/* BACKGROUND: Fixed so it doesn't move when you scroll the content */}
       <div className="fixed inset-0 z-0 opacity-30 grayscale pointer-events-none">
         <img
           alt="Cebu map background"
@@ -158,7 +282,6 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
         />
       </div>
 
-      {/* MAIN CONTENT AREA: max-w-md keeps it from stretching on PC */}
       <main className="relative z-10 flex-1 flex flex-col w-full max-w-md mx-auto px-6 pt-8 pb-32">
         <div className="mb-6">
           <h2 className="font-headline text-3xl leading-tight font-bold text-[#001d3d]">
@@ -167,7 +290,6 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
           </h2>
         </div>
 
-        {/* Destination Card */}
         <div className="bg-[#e9eef2]/90 backdrop-blur-sm rounded-[24px] p-5 mb-8 shadow-sm">
           <div className="space-y-4 relative">
             <div className="absolute left-[9px] top-6 bottom-6 w-[1.5px] bg-gray-400/30" />
@@ -180,6 +302,15 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
                 <input
                   className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold focus:ring-1 focus:ring-[#001d3d]"
                   value={tripRequest.origin}
+                  placeholder="Search origin..."
+                  onFocus={() => setActiveSuggestionField("origin")}
+                  onBlur={() => {
+                    window.setTimeout(() => {
+                      setActiveSuggestionField((current) =>
+                        current === "origin" ? null : current,
+                      );
+                    }, 120);
+                  }}
                   onChange={(event) =>
                     onTripDraftChange({
                       ...tripRequest,
@@ -188,6 +319,28 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
                     })
                   }
                 />
+                {activeSuggestionField === "origin" &&
+                  originSuggestions.length > 0 && (
+                    <div className="mt-2 bg-white border border-[#dce3ea] rounded-xl shadow-md overflow-hidden">
+                      {originSuggestions.map((suggestion) => (
+                        <button
+                          key={`origin-${suggestion}`}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm text-[#001d3d] hover:bg-[#eef3f8]"
+                          onMouseDown={() => {
+                            onTripDraftChange({
+                              ...tripRequest,
+                              origin: suggestion,
+                              originCoord: null,
+                            });
+                            setActiveSuggestionField(null);
+                          }}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -199,6 +352,14 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
                 <input
                   className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold"
                   value={tripRequest.destination}
+                  onFocus={() => setActiveSuggestionField("destination")}
+                  onBlur={() => {
+                    window.setTimeout(() => {
+                      setActiveSuggestionField((current) =>
+                        current === "destination" ? null : current,
+                      );
+                    }, 120);
+                  }}
                   onChange={(event) =>
                     onTripDraftChange({
                       ...tripRequest,
@@ -208,6 +369,28 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
                   }
                   placeholder="Search destination..."
                 />
+                {activeSuggestionField === "destination" &&
+                  destinationSuggestions.length > 0 && (
+                    <div className="mt-2 bg-white border border-[#dce3ea] rounded-xl shadow-md overflow-hidden">
+                      {destinationSuggestions.map((suggestion) => (
+                        <button
+                          key={`destination-${suggestion}`}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm text-[#001d3d] hover:bg-[#eef3f8]"
+                          onMouseDown={() => {
+                            onTripDraftChange({
+                              ...tripRequest,
+                              destination: suggestion,
+                              destinationCoord: null,
+                            });
+                            setActiveSuggestionField(null);
+                          }}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -215,13 +398,17 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
 
         <div className="bg-white/90 rounded-[24px] p-4 mb-8 border border-[#dce3ea] shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-[#001d3d]">Tap Map To Pin Trip Points</h3>
+            <h3 className="text-sm font-bold text-[#001d3d]">
+              Tap Map To Pin Trip Points
+            </h3>
             <div className="flex bg-[#eef3f8] rounded-xl p-1">
               <button
                 type="button"
                 onClick={() => setMapPickMode("origin")}
                 className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg ${
-                  mapPickMode === "origin" ? "bg-[#001d3d] text-white" : "text-[#60778f]"
+                  mapPickMode === "origin"
+                    ? "bg-[#001d3d] text-white"
+                    : "text-[#60778f]"
                 }`}
               >
                 Set Origin
@@ -230,7 +417,9 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
                 type="button"
                 onClick={() => setMapPickMode("destination")}
                 className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg ${
-                  mapPickMode === "destination" ? "bg-[#001d3d] text-white" : "text-[#60778f]"
+                  mapPickMode === "destination"
+                    ? "bg-[#001d3d] text-white"
+                    : "text-[#60778f]"
                 }`}
               >
                 Set Destination
@@ -246,25 +435,32 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
               className="w-full h-full"
             >
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <MapClickHandler />
 
               {tripRequest.originCoord && (
-                <Marker position={[tripRequest.originCoord.lat, tripRequest.originCoord.lng]} />
+                <Marker
+                  position={[
+                    tripRequest.originCoord.lat,
+                    tripRequest.originCoord.lng,
+                  ]}
+                />
               )}
 
               {tripRequest.destinationCoord && (
                 <Marker
-                  position={[tripRequest.destinationCoord.lat, tripRequest.destinationCoord.lng]}
+                  position={[
+                    tripRequest.destinationCoord.lat,
+                    tripRequest.destinationCoord.lng,
+                  ]}
                 />
               )}
             </MapContainer>
           </div>
         </div>
 
-        {/* Vehicle Fleet: Still horizontal scrollable as it's a specific UI pattern */}
         <div className="mb-8">
           <h3 className="text-sm font-bold text-[#001d3d] mb-4">
             Select Your Vehicle
@@ -273,37 +469,63 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
             {availableVehicles.map((vehicle) => (
               <button
                 key={vehicle.id}
-                onClick={() => setSelectedVehicleId(vehicle.id)}
+                onClick={() => {
+                  setSelectedVehicleId(vehicle.id);
+                  onTripDraftChange({
+                    ...tripRequest,
+                    vehicleType: vehicle.type,
+                    fuelType: vehicle.fuelType,
+                    efficiencyKmPerUnit: vehicle.efficiencyKmPerUnit,
+                    vehicleLabel: vehicle.nickname,
+                  });
+                }}
                 className={`flex flex-col min-w-[220px] p-4 rounded-2xl border-2 transition-all ${
                   selectedVehicleId === vehicle.id
                     ? "bg-white border-[#001d3d] shadow-md"
                     : "bg-white/40 border-transparent text-gray-400"
                 }`}
               >
-                <span className="material-symbols-outlined mb-2">
-                  {vehicle.type === "car" ? "directions_car" : "two_wheeler"}
-                </span>
+                <div className="w-full flex justify-between items-start mb-2">
+                  <span className="material-symbols-outlined">
+                    {vehicle.type === "car" ? "directions_car" : "two_wheeler"}
+                  </span>
+                  <div
+                    className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${
+                      selectedVehicleId === vehicle.id
+                        ? "bg-[#001d3d] text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {vehicle.fuelType}
+                  </div>
+                </div>
                 <div className="text-sm font-bold text-[#001d3d]">
                   {vehicle.nickname}
                 </div>
-                <div className="text-[10px] font-bold uppercase opacity-60">
-                  {vehicle.plate}
+                <div className="flex justify-between items-center w-full mt-1">
+                  <div className="text-[10px] font-bold uppercase opacity-60">
+                    {vehicle.plate}
+                  </div>
+                  <div className="text-[10px] font-bold text-[#60778f]">
+                    {vehicle.efficiencyKmPerUnit}{" "}
+                    {vehicle.fuelType === "electric" ? "km/kWh" : "km/L"}
+                  </div>
                 </div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Find Best Route Button: Now sits in the flow of the page */}
         <button
           onClick={handleFindBestRoute}
-          disabled={!tripRequest.origin.trim() || !tripRequest.destination.trim()}
+          disabled={
+            !tripRequest.origin.trim() || !tripRequest.destination.trim()
+          }
           className="w-full h-14 bg-[#001d3d] disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-2xl font-bold uppercase tracking-widest text-sm shadow-xl mb-10 hover:bg-[#002d5d] active:scale-95 transition-all"
         >
           Find Best Route
         </button>
 
-        {/* Recent Trips: NO MORE INTERNAL SCROLLBAR */}
         <div className="flex flex-col">
           <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">
             Recent Trips
@@ -338,7 +560,6 @@ const HomeScreen = ({ tripRequest, onTripDraftChange, onFindBestRoute }: HomeScr
         </div>
       </main>
 
-      {/* BOTTOM NAV: Full width, stays at bottom */}
       <div className="w-full bg-white border-t border-gray-200 sticky bottom-0 z-50">
         <AppBottomNav activeTab="explore" onRoutes={handleFindBestRoute} />
       </div>
