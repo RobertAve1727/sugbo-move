@@ -142,7 +142,8 @@ const RecommendationDetailScreen = ({
             </div>
 
             <p className="text-xs font-semibold text-[#60778f]">
-              CO2 Emission: {directRoute ? `${directRoute.co2Kg.toFixed(2)} kg` : "..."}
+              CO2 Emission:{" "}
+              {directRoute ? `${directRoute.co2Kg.toFixed(2)} kg` : "..."}
             </p>
 
             {/* Minimal Map Strip for context */}

@@ -122,10 +122,13 @@ export const buildDisplayRoutes = (routes: RouteScenario[]): DisplayRoute[] => {
       maxCo2Kg > 0 ? ((maxCo2Kg - route.co2Kg) / maxCo2Kg) * 100 : 0;
     const co2IntensityKgPerKm = route.co2Kg / Math.max(0.1, route.distanceKm);
     const gasolineCarBaselineKgPerKm = 0.17;
-    const intensityPercent = (co2IntensityKgPerKm / gasolineCarBaselineKgPerKm) * 100;
+    const intensityPercent =
+      (co2IntensityKgPerKm / gasolineCarBaselineKgPerKm) * 100;
 
-    const displayPercent = co2Spread < 0.01 ? intensityPercent : reductionPercent;
-    const normalizedPercent = Math.abs(displayPercent) < 0.005 ? 0 : displayPercent;
+    const displayPercent =
+      co2Spread < 0.01 ? intensityPercent : reductionPercent;
+    const normalizedPercent =
+      Math.abs(displayPercent) < 0.005 ? 0 : displayPercent;
     const co2DeltaLabel = `${normalizedPercent.toFixed(2)}% CO2`;
 
     return {
