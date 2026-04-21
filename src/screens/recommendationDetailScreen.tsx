@@ -12,7 +12,7 @@ const RecommendationDetailScreen = ({
     <div className="min-h-dvh bg-surface text-on-surface flex flex-1 flex-col w-full">
       <AppHeader onMenuClick={onBackToHome} />
 
-      <main className="flex-1 px-4 sm:px-6 max-w-2xl w-full mx-auto space-y-8 pt-6 pb-28 md:pb-10">
+      <main className="flex-1 px-4 sm:px-6 max-w-2xl w-full mx-auto space-y-8 pt-6 pb-28 md:pb-24">
         <section className="space-y-4">
           <div className="inline-flex items-center px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed rounded-full text-[10px] font-label font-bold tracking-widest uppercase">
             Optimized Choice
