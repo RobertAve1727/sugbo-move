@@ -13,7 +13,6 @@ import {
 import { fallbackRoutes } from "./services/fallbackRoutes";
 
 type Tab = "explore" | "recos" | "routes" | "profile";
-
 type NavigationSource = "recos" | "routes";
 
 type NavigationContext = {
@@ -31,6 +30,7 @@ const App: React.FC = () => {
   >(null);
   const [navigationContext, setNavigationContext] =
     React.useState<NavigationContext | null>(null);
+
   const [tripRequest, setTripRequest] = React.useState<TripRequest>({
     origin: "",
     destination: "",
@@ -41,6 +41,7 @@ const App: React.FC = () => {
     efficiencyKmPerUnit: 15.4,
     vehicleLabel: "Toyota Vios",
   });
+
   const [routeData, setRouteData] =
     React.useState<RouteComparisonResult | null>(null);
   const [routeDataLoading, setRouteDataLoading] = React.useState(false);
@@ -48,32 +49,39 @@ const App: React.FC = () => {
     null,
   );
 
+  // --- NAVIGATION HANDLERS ---
+
+  const handleGoToRecos = () => {
+    setIsNavigationOpen(false);
+    setActiveTab("recos");
+  };
+
+  const handleBackToHome = () => {
+    setIsNavigationOpen(false);
+    setNavigationContext(null);
+    setRouteData(null); // Clear data to reset the state
+    setActiveTab("explore");
+  };
+
+  const handleStartNavigation = (payload: any, source: NavigationSource) => {
+    setNavigationContext({
+      source: source,
+      action: payload.action || "goNow",
+      routeName: payload.routeName,
+      routeGeometry: payload.routeGeometry,
+    });
+    setIsNavigationOpen(true);
+  };
+
+  // --- DATA FETCHING ---
   React.useEffect(() => {
-    if (activeTab !== "recos" && activeTab !== "routes") {
-      return;
-    }
+    if (activeTab !== "recos" && activeTab !== "routes") return;
+    if (!tripRequest.originCoord || !tripRequest.destinationCoord) return;
 
     const loadRouteData = async () => {
       setRouteDataLoading(true);
-
       try {
-        const requestWithRetry = async (
-          attempt = 0,
-        ): Promise<RouteComparisonResult> => {
-          try {
-            return await fetchTrafficRouteComparisons(tripRequest);
-          } catch (error) {
-            if (attempt >= 2) {
-              throw error;
-            }
-
-            const waitMs = (attempt + 1) * 500;
-            await new Promise((resolve) => setTimeout(resolve, waitMs));
-            return requestWithRetry(attempt + 1);
-          }
-        };
-
-        const liveData = await requestWithRetry();
+        const liveData = await fetchTrafficRouteComparisons(tripRequest);
         setRouteData(liveData);
         setRouteDataError(null);
       } catch {
@@ -82,20 +90,17 @@ const App: React.FC = () => {
           destination: tripRequest.destination,
           routes: fallbackRoutes,
         });
-        setRouteDataError(
-          "Unable to fetch live traffic. Showing local fallback estimates.",
-        );
+        setRouteDataError("Using fallback data.");
       } finally {
         setRouteDataLoading(false);
       }
     };
-
     void loadRouteData();
   }, [activeTab, tripRequest]);
 
   return (
-    <main id="app-root" className="flex min-h-dvh w-full flex-col">
-      {/* SCREEN SWITCH */}
+    <main id="app-root" className="flex min-h-dvh w-full flex-col bg-slate-50">
+      {/* 1. HOME SCREEN */}
       {!isNavigationOpen && activeTab === "explore" && (
         <HomeScreen
           tripRequest={tripRequest}
@@ -107,20 +112,14 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* 2. RECOMMENDATIONS SCREEN */}
       {!isNavigationOpen && activeTab === "recos" && (
         <RecommendationDetailScreen
-          onBackToHome={() => setActiveTab("explore")}
-          onStartRoute={(payload) => {
-            setNavigationContext({
-              source: "recos",
-              action: payload.action,
-              routeName: payload.routeName,
-              routeGeometry: payload.routeGeometry,
-            });
-            setIsNavigationOpen(true);
-          }}
+          onBackToHome={handleBackToHome}
+          onNavigateToRecos={handleGoToRecos}
+          onStartRoute={(p) => handleStartNavigation(p, "recos")}
           onViewAlternativeRoutes={(routeId) => {
-            setPreferredRouteId(routeId);
+            setPreferredRouteId(routeId as any);
             setActiveTab("routes");
           }}
           tripRequest={tripRequest}
@@ -130,6 +129,7 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* 3. ROUTES COMPARISON SCREEN */}
       {!isNavigationOpen && activeTab === "routes" && (
         <RouteComparisonScreen
           tripRequest={tripRequest}
@@ -137,36 +137,26 @@ const App: React.FC = () => {
           isLoading={routeDataLoading}
           loadError={routeDataError}
           initialSelectedRouteId={preferredRouteId}
-          onStartRoute={(payload) => {
-            setNavigationContext({
-              source: "routes",
-              action: "goNow",
-              routeName: payload.routeName,
-              routeGeometry: payload.routeGeometry,
-            });
-            setIsNavigationOpen(true);
-          }}
+          onStartRoute={(p) => handleStartNavigation(p, "routes")}
         />
       )}
 
+      {/* 4. LIVE NAVIGATION */}
       {isNavigationOpen && (
         <NavigationScreen
           tripRequest={tripRequest}
           navigationContext={navigationContext}
-          onBack={() => setIsNavigationOpen(false)}
+          onBack={handleGoToRecos}
+          onNavigateToRecos={handleGoToRecos}
         />
-      )}
-
-      {!isNavigationOpen && activeTab === "profile" && (
-        <div className="p-6">Profile Screen (placeholder)</div>
       )}
 
       {/* BOTTOM NAV */}
       {!isNavigationOpen && (
         <AppBottomNav
           activeTab={activeTab}
-          onExplore={() => setActiveTab("explore")}
-          onRecos={() => setActiveTab("recos")}
+          onExplore={handleBackToHome}
+          onRecos={handleGoToRecos}
           onRoutes={() => setActiveTab("routes")}
           onProfile={() => setActiveTab("profile")}
         />

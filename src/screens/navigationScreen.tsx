@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { LatLngBounds, latLngBounds } from "leaflet";
+import { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   Marker,
@@ -7,15 +6,12 @@ import {
   TileLayer,
   useMap,
 } from "react-leaflet";
-import type { LatLngExpression } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import AppHeader from "../components/layout/AppHeader";
 import AppBottomNav from "../components/layout/AppBottomNav";
 import type { TripRequest } from "../types/trip";
-import icon from "leaflet/dist/images/marker-icon.png";
-import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
+// --- TYPES & INTERFACES ---
 type NavigationContext = {
   source: "recos" | "routes";
   action: "wait" | "goNow";
@@ -25,249 +21,161 @@ type NavigationContext = {
 
 interface NavigationScreenProps {
   tripRequest: TripRequest;
-  navigationContext: NavigationContext;
+  navigationContext: NavigationContext | null;
   onBack: () => void;
+  onNavigateToRecos: () => void; // Must be here!
 }
 
-const DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+const UserLocationIcon = L.divIcon({
+  className: "custom-div-icon",
+  html: `<div class='marker-pin'></div><div class='pulse'></div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
-const RecenterMap = ({ center }: { center: [number, number] }) => {
+const MapFollower = ({ center }: { center: [number, number] }) => {
   const map = useMap();
-
   useEffect(() => {
-    map.setView(center, map.getZoom(), { animate: true });
+    map.setView(center, 16, { animate: true });
   }, [center, map]);
-
   return null;
-};
-
-const FitRouteBounds = ({ bounds }: { bounds: LatLngBounds | null }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!bounds) {
-      return;
-    }
-
-    map.fitBounds(bounds, { padding: [24, 24] });
-  }, [bounds, map]);
-
-  return null;
-};
-
-const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
-const toDegrees = (radians: number): number => (radians * 180) / Math.PI;
-
-const bearingBetweenPoints = (
-  fromLat: number,
-  fromLng: number,
-  toLat: number,
-  toLng: number,
-): number => {
-  const dLon = toRadians(toLng - fromLng);
-  const lat1 = toRadians(fromLat);
-  const lat2 = toRadians(toLat);
-
-  const y = Math.sin(dLon) * Math.cos(lat2);
-  const x =
-    Math.cos(lat1) * Math.sin(lat2) -
-    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-
-  const bearing = toDegrees(Math.atan2(y, x));
-  return (bearing + 360) % 360;
 };
 
 const NavigationScreen = ({
   tripRequest,
   navigationContext,
   onBack,
+  onNavigateToRecos,
 }: NavigationScreenProps) => {
   const [currentPosition, setCurrentPosition] = useState<
     [number, number] | null
   >(null);
-  const lastPositionRef = useRef<[number, number] | null>(null);
-  const [headingDeg, setHeadingDeg] = useState<number>(0);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported on this device.");
-      return;
-    }
-
     const watcherId = navigator.geolocation.watchPosition(
-      (position) => {
-        const nextPosition: [number, number] = [
-          position.coords.latitude,
-          position.coords.longitude,
-        ];
-
-        setCurrentPosition(nextPosition);
-        const previousPosition = lastPositionRef.current;
-        if (previousPosition) {
-          const derivedHeading = bearingBetweenPoints(
-            previousPosition[0],
-            previousPosition[1],
-            nextPosition[0],
-            nextPosition[1],
-          );
-          setHeadingDeg(derivedHeading);
-        }
-
-        lastPositionRef.current = nextPosition;
-        setLocationError(null);
-      },
-      () => {
-        setLocationError(
-          "Unable to read your live location. Enable location permissions.",
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 3000,
-        timeout: 12000,
-      },
+      (pos) => setCurrentPosition([pos.coords.latitude, pos.coords.longitude]),
+      (err) => console.error(err),
+      { enableHighAccuracy: true },
     );
-
     return () => navigator.geolocation.clearWatch(watcherId);
   }, []);
 
-  const mapCenter: LatLngExpression = useMemo(() => {
-    if (currentPosition) {
-      return currentPosition;
-    }
-
-    if (tripRequest.originCoord) {
-      return [tripRequest.originCoord.lat, tripRequest.originCoord.lng];
-    }
-
-    return [10.3157, 123.8854];
-  }, [currentPosition, tripRequest.originCoord]);
-
   const routePath = useMemo(() => {
-    if (!navigationContext?.routeGeometry?.length) {
-      return [] as [number, number][];
-    }
-
+    if (!navigationContext?.routeGeometry) return [];
     return navigationContext.routeGeometry.map(
-      (point) => [point[1], point[0]] as [number, number],
+      (p: [number, number]) => [p[1], p[0]] as [number, number],
     );
-  }, [navigationContext?.routeGeometry]);
+  }, [navigationContext]);
 
-  const routeBounds = useMemo(() => {
-    if (!routePath.length && !currentPosition) {
-      return null;
-    }
-
-    const points = [...routePath];
-
-    if (currentPosition) {
-      points.push(currentPosition);
-    }
-
-    return latLngBounds(points);
-  }, [currentPosition, routePath]);
-
-  const headingLabel = `${Math.round(headingDeg)}°`;
-  const directionHint =
-    navigationContext?.action === "wait"
-      ? "Wait Mode engaged. Start moving when congestion eases."
-      : "Go Now mode engaged. Follow heading in real time.";
+  // Safety guard to prevent white screen
+  if (!navigationContext || !tripRequest) return null;
 
   return (
-    <div className="min-h-dvh bg-[#f7f9fb] flex flex-col text-[#0f172a]">
-      <AppHeader onMenuClick={onBack} />
-
-      <main className="flex-1 px-4 pt-6 pb-28 max-w-md w-full mx-auto space-y-4">
-        <div className="bg-[#001d3d] text-white rounded-2xl p-4 shadow-lg">
-          <p className="text-[10px] uppercase tracking-widest text-white/70 font-bold">
-            Live Navigation
-          </p>
-          <h2 className="text-xl font-bold mt-1">
-            {tripRequest.destination || "Destination"}
-          </h2>
-          <p className="text-xs text-white/80 mt-2">{directionHint}</p>
-          <p className="text-xs text-white/70 mt-1">
-            Source: {navigationContext?.source ?? "route"} | Route:{" "}
-            {navigationContext?.routeName ?? "Recommended"}
-          </p>
-        </div>
-
-        {locationError && (
-          <div className="rounded-xl border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs font-semibold text-yellow-700">
-            {locationError}
-          </div>
-        )}
-
-        <div className="rounded-2xl overflow-hidden border border-[#d8e1ea] shadow-sm h-80">
-          <MapContainer
-            center={mapCenter}
-            zoom={16}
-            className="w-full h-full"
-            scrollWheelZoom
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    <div className="h-screen bg-[#f0f4f8] flex flex-col overflow-hidden relative font-sans">
+      {/* 1. TOP-DOWN FUNCTIONAL MAP */}
+      <div className="absolute inset-0 z-0">
+        <MapContainer
+          center={[10.3157, 123.8854]}
+          zoom={16}
+          zoomControl={false}
+          className="w-full h-full"
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {routePath.length > 0 && (
+            <Polyline
+              positions={routePath}
+              pathOptions={{ color: "#2563eb", weight: 7, opacity: 0.8 }}
             />
+          )}
+          {currentPosition && (
+            <>
+              <Marker position={currentPosition} icon={UserLocationIcon} />
+              <MapFollower center={currentPosition} />
+            </>
+          )}
+        </MapContainer>
+      </div>
 
-            {currentPosition && <Marker position={currentPosition} />}
-
-            {routePath.length > 0 && (
-              <Polyline
-                pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.85 }}
-                positions={routePath}
-              />
-            )}
-
-            {currentPosition &&
-              routePath.length === 0 &&
-              tripRequest.destinationCoord && (
-                <Polyline
-                  pathOptions={{ color: "#0ea5e9", weight: 5, opacity: 0.8 }}
-                  positions={[
-                    currentPosition,
-                    [
-                      tripRequest.destinationCoord.lat,
-                      tripRequest.destinationCoord.lng,
-                    ],
-                  ]}
-                />
-              )}
-
-            {currentPosition && <RecenterMap center={currentPosition} />}
-            {routeBounds && <FitRouteBounds bounds={routeBounds} />}
-          </MapContainer>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl border border-[#d8e1ea] p-4">
-            <p className="text-[10px] uppercase tracking-widest text-[#64748b] font-bold">
-              Current Heading
-            </p>
-            <p className="text-2xl font-black text-[#001d3d] mt-1">
-              {headingLabel}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#d8e1ea] p-4">
-            <p className="text-[10px] uppercase tracking-widest text-[#64748b] font-bold">
-              Mode
-            </p>
-            <p className="text-sm font-bold text-[#001d3d] mt-2 uppercase">
-              {navigationContext?.action === "wait" ? "Wait" : "Go Now"}
-            </p>
+      {/* 2. FLOATING UI OVERLAY */}
+      <div className="relative z-[1000] flex flex-col h-full pointer-events-none">
+        {/* Top Destination Header */}
+        <div className="p-4 pt-8 pointer-events-auto">
+          <div className="bg-[#001d3d] text-white rounded-2xl p-5 shadow-2xl flex items-center gap-4">
+            <div className="bg-[#2563eb] p-3 rounded-xl shadow-lg">
+              <span className="material-symbols-outlined text-white text-3xl">
+                navigation
+              </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">
+                Navigation Active
+              </p>
+              <h2 className="text-xl font-bold">
+                Toward {tripRequest.destination || "Destination"}
+              </h2>
+            </div>
           </div>
         </div>
-      </main>
 
-      <AppBottomNav activeTab="routes" onExplore={onBack} />
+        {/* Bottom HUD & Action Area */}
+        <div className="mt-auto p-4 pb-32 space-y-4 pointer-events-auto">
+          <div className="bg-white rounded-[28px] shadow-2xl p-6 grid grid-cols-3 divide-x divide-gray-100 border border-gray-100">
+            <div className="text-center">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                Est. Time
+              </p>
+              <p className="text-xl font-black text-[#001d3d]">12 min</p>
+            </div>
+            <div className="text-center px-1">
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">
+                Status
+              </p>
+              <p className="text-lg font-black text-[#001d3d] uppercase">
+                {navigationContext.action === "wait" ? "Waiting" : "Moving"}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                Distance
+              </p>
+              <p className="text-xl font-black text-[#001d3d]">4.2 km</p>
+            </div>
+          </div>
+
+          <button
+            onClick={onBack}
+            className="w-full bg-[#ff3b3b] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+          >
+            End Journey
+          </button>
+        </div>
+      </div>
+
+      {/* 3. FIXED BOTTOM NAVIGATION TRIGGERS */}
+      <AppBottomNav
+        activeTab="routes"
+        onExplore={onBack} // Fix: Triggers Home + State Reset
+        onRecos={onNavigateToRecos} // Fix: Explicitly goes back to Recommendations
+      />
+
+      <style>{`
+        .marker-pin {
+          width: 18px; height: 18px; border-radius: 50%;
+          background: #2563eb; border: 3px solid white;
+          box-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
+        }
+        .pulse {
+          background: rgba(37, 99, 235, 0.4);
+          border-radius: 50%; height: 40px; width: 40px;
+          position: absolute; left: -11px; top: -11px;
+          animation: pulsate 2s ease-out infinite;
+        }
+        @keyframes pulsate {
+          0% { transform: scale(0.1); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: scale(1.3); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };
