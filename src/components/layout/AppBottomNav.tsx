@@ -1,10 +1,10 @@
-type NavTab = "explore" | "routes" | "savings" | "profile";
+type NavTab = "explore" | "recos" | "routes" | "profile";
 
 interface AppBottomNavProps {
   activeTab: NavTab;
   onExplore?: () => void;
+  onRecos?: () => void;
   onRoutes?: () => void;
-  onSavings?: () => void;
   onProfile?: () => void;
 }
 
@@ -14,8 +14,8 @@ const baseTabClass =
 const AppBottomNav = ({
   activeTab,
   onExplore,
+  onRecos,
   onRoutes,
-  onSavings,
   onProfile,
 }: AppBottomNavProps) => {
   const getTabClass = (tab: NavTab) => {
@@ -28,6 +28,8 @@ const AppBottomNav = ({
 
   return (
     <nav className="fixed inset-x-0 bottom-0 w-full z-50 flex justify-around items-center px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,13,34,0.06)] border-t border-[#e6e8ea]/15 rounded-t-2xl">
+      
+      {/* Explore */}
       <button
         type="button"
         onClick={onExplore}
@@ -39,28 +41,31 @@ const AppBottomNav = ({
         </span>
       </button>
 
+      {/* Recos (was Routes) */}
+      <button
+        type="button"
+        onClick={onRecos}
+        className={getTabClass("recos")}
+      >
+        <span className="material-symbols-outlined">directions_car</span>
+        <span className="font-[Inter] text-[10px] font-bold uppercase tracking-widest mt-1">
+          Recos
+        </span>
+      </button>
+
+      {/* Routes (was Savings) */}
       <button
         type="button"
         onClick={onRoutes}
         className={getTabClass("routes")}
       >
-        <span className="material-symbols-outlined">directions_car</span>
+        <span className="material-symbols-outlined">payments</span>
         <span className="font-[Inter] text-[10px] font-bold uppercase tracking-widest mt-1">
           Routes
         </span>
       </button>
 
-      <button
-        type="button"
-        onClick={onSavings}
-        className={getTabClass("savings")}
-      >
-        <span className="material-symbols-outlined">payments</span>
-        <span className="font-[Inter] text-[10px] font-bold uppercase tracking-widest mt-1">
-          Savings
-        </span>
-      </button>
-
+      {/* Profile */}
       <button
         type="button"
         onClick={onProfile}
