@@ -8,7 +8,6 @@ import type { TripRequest } from "./types/trip";
 import {
   fetchTrafficRouteComparisons,
   type RouteComparisonResult,
-  type RouteScenario,
 } from "./services/mapboxDirections";
 import { fallbackRoutes } from "./services/fallbackRoutes";
 
@@ -25,9 +24,6 @@ type NavigationContext = {
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<Tab>("explore");
   const [isNavigationOpen, setIsNavigationOpen] = React.useState(false);
-  const [preferredRouteId, setPreferredRouteId] = React.useState<
-    RouteScenario["id"] | null
-  >(null);
   const [navigationContext, setNavigationContext] =
     React.useState<NavigationContext | null>(null);
 
@@ -76,7 +72,11 @@ const App: React.FC = () => {
   // --- DATA FETCHING ---
   React.useEffect(() => {
     if (activeTab !== "recos" && activeTab !== "routes") return;
-    if (!tripRequest.originCoord || !tripRequest.destinationCoord) return;
+    const destinationReady = Boolean(tripRequest.destination.trim());
+
+    if (!tripRequest.originCoord || !destinationReady) {
+      return;
+    }
 
     const loadRouteData = async () => {
       setRouteDataLoading(true);
@@ -118,8 +118,7 @@ const App: React.FC = () => {
           onBackToHome={handleBackToHome}
           onNavigateToRecos={handleGoToRecos}
           onStartRoute={(p) => handleStartNavigation(p, "recos")}
-          onViewAlternativeRoutes={(routeId) => {
-            setPreferredRouteId(routeId as any);
+          onViewAlternativeRoutes={() => {
             setActiveTab("routes");
           }}
           tripRequest={tripRequest}
@@ -136,7 +135,6 @@ const App: React.FC = () => {
           routeData={routeData}
           isLoading={routeDataLoading}
           loadError={routeDataError}
-          initialSelectedRouteId={preferredRouteId}
           onStartRoute={(p) => handleStartNavigation(p, "routes")}
         />
       )}

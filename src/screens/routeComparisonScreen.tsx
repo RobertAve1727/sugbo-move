@@ -35,7 +35,6 @@ interface RouteComparisonScreenProps {
   routeData: RouteComparisonResult | null;
   isLoading: boolean;
   loadError: string | null;
-  initialSelectedRouteId?: RouteScenario["id"] | null;
   onStartRoute: (payload: {
     routeName: string;
     routeGeometry: [number, number][];
@@ -47,15 +46,22 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
   routeData,
   isLoading,
   loadError,
-  initialSelectedRouteId,
   onStartRoute,
 }) => {
   const [selectedRouteId, setSelectedRouteId] = useState<
     RouteScenario["id"] | null
   >(null);
-  const baseRoutes = routeData?.routes?.length
-    ? routeData.routes
-    : fallbackRoutes;
+  const baseRoutes = useMemo(() => {
+    if (routeData?.routes?.length) {
+      return routeData.routes;
+    }
+
+    if (loadError) {
+      return fallbackRoutes;
+    }
+
+    return [];
+  }, [loadError, routeData?.routes]);
   const routes = useMemo(
     () => applyVehicleMetrics(baseRoutes, tripRequest),
     [baseRoutes, tripRequest],
@@ -70,21 +76,10 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
   );
 
   useEffect(() => {
-    if (initialSelectedRouteId) {
-      setSelectedRouteId(initialSelectedRouteId);
-      return;
-    }
-
     if (recommendedRoute && !selectedRouteId) {
       setSelectedRouteId(recommendedRoute.id);
     }
-  }, [
-    initialSelectedRouteId,
-    recommendedRoute,
-    selectedRouteId,
-    tripRequest.origin,
-    tripRequest.destination,
-  ]);
+  }, [recommendedRoute, selectedRouteId]);
 
   const selectedRoute = useMemo(
     () =>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import type { LatLngExpression } from "leaflet";
 import L from "leaflet";
@@ -28,21 +28,21 @@ const cebuPlaces = [
   "Ayala Center Cebu",
   "SM City Cebu",
   "SM Seaside City Cebu",
-  "Fuente Osmena Circle",
+  "Fuente Osmena Circle, Cebu City",
   "Cebu Business Park",
-  "Mactan Newtown, Lapu-Lapu City",
-  "Mactan-Cebu International Airport",
+  "The Mactan Newtown, Lapu-Lapu City",
+  "Mactan-Cebu International Airport, Lapu-Lapu City",
   "Colon Street, Cebu City",
-  "South Road Properties, Cebu",
-  "Cebu Doctors University Hospital",
-  "Chong Hua Hospital Cebu",
+  "South Road Properties (SRP), Cebu City",
+  "Cebu Doctors' University Hospital, Cebu City",
+  "Chong Hua Hospital, Cebu City",
   "Carbon Market, Cebu City",
-  "University of San Carlos - Talamban",
-  "Temple of Leah",
-  "Sirao Garden",
-  "Tops Lookout, Busay",
+  "University of San Carlos Talamban Campus",
+  "Temple of Leah, Busay",
+  "Sirao Flower Garden, Cebu City",
+  "Tops Lookout, Busay, Cebu City",
   "Mandaue City Hall",
-  "Parkmall, Mandaue",
+  "Parkmall, Mandaue City",
   "Lapu-Lapu City Hall",
 ];
 
@@ -60,6 +60,12 @@ const HomeScreen = ({
   onTripDraftChange,
   onFindBestRoute,
 }: HomeScreenProps) => {
+  const latestTripRef = useRef(tripRequest);
+
+  useEffect(() => {
+    latestTripRef.current = tripRequest;
+  }, [tripRequest]);
+
   const [availableVehicles] = useState<VehicleOption[]>([
     {
       id: "v1",
@@ -96,11 +102,8 @@ const HomeScreen = ({
   ]);
 
   const [selectedVehicleId, setSelectedVehicleId] = useState("v1");
-  const [mapPickMode, setMapPickMode] = useState<"origin" | "destination">(
-    "origin",
-  );
   const [activeSuggestionField, setActiveSuggestionField] = useState<
-    "origin" | "destination" | null
+    "destination" | null
   >(null);
 
   const selectedVehicle = useMemo(
@@ -149,15 +152,14 @@ const HomeScreen = ({
   ];
 
   const handleFindBestRoute = () => {
-    const normalizedOrigin = tripRequest.origin.trim();
     const normalizedDestination = tripRequest.destination.trim();
 
-    if (!normalizedOrigin || !normalizedDestination) {
+    if (!tripRequest.originCoord || !normalizedDestination) {
       return;
     }
 
     onFindBestRoute({
-      origin: normalizedOrigin,
+      origin: tripRequest.origin.trim() || "Current location",
       destination: normalizedDestination,
       originCoord: tripRequest.originCoord ?? null,
       destinationCoord: tripRequest.destinationCoord ?? null,
@@ -181,6 +183,40 @@ const HomeScreen = ({
     return [10.3157, 123.8854];
   }, [tripRequest.destinationCoord, tripRequest.originCoord]);
 
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const latestTrip = latestTripRef.current;
+        const nextOriginCoord = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+
+        onTripDraftChange({
+          ...latestTrip,
+          origin: "Current location",
+          originCoord: nextOriginCoord,
+        });
+      },
+      () => {
+        const latestTrip = latestTripRef.current;
+        onTripDraftChange({
+          ...latestTrip,
+          origin: "Current location",
+        });
+      },
+      {
+        enableHighAccuracy: true,
+      },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [onTripDraftChange]);
+
   const getFilteredSuggestions = (query: string) => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -192,11 +228,6 @@ const HomeScreen = ({
       .filter((place) => place.toLowerCase().includes(normalizedQuery))
       .slice(0, 6);
   };
-
-  const originSuggestions = useMemo(
-    () => getFilteredSuggestions(tripRequest.origin),
-    [tripRequest.origin],
-  );
 
   const destinationSuggestions = useMemo(
     () => getFilteredSuggestions(tripRequest.destination),
@@ -248,15 +279,6 @@ const HomeScreen = ({
           nextCoord.lng,
         );
 
-        if (mapPickMode === "origin") {
-          onTripDraftChange({
-            ...tripRequest,
-            origin: placeLabel,
-            originCoord: nextCoord,
-          });
-          return;
-        }
-
         onTripDraftChange({
           ...tripRequest,
           destination: placeLabel,
@@ -299,48 +321,11 @@ const HomeScreen = ({
                 <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">
                   Origin
                 </span>
-                <input
-                  className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold focus:ring-1 focus:ring-[#001d3d]"
-                  value={tripRequest.origin}
-                  placeholder="Search origin..."
-                  onFocus={() => setActiveSuggestionField("origin")}
-                  onBlur={() => {
-                    window.setTimeout(() => {
-                      setActiveSuggestionField((current) =>
-                        current === "origin" ? null : current,
-                      );
-                    }, 120);
-                  }}
-                  onChange={(event) =>
-                    onTripDraftChange({
-                      ...tripRequest,
-                      origin: event.target.value,
-                      originCoord: null,
-                    })
-                  }
-                />
-                {activeSuggestionField === "origin" &&
-                  originSuggestions.length > 0 && (
-                    <div className="mt-2 bg-white border border-[#dce3ea] rounded-xl shadow-md overflow-hidden">
-                      {originSuggestions.map((suggestion) => (
-                        <button
-                          key={`origin-${suggestion}`}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm text-[#001d3d] hover:bg-[#eef3f8]"
-                          onMouseDown={() => {
-                            onTripDraftChange({
-                              ...tripRequest,
-                              origin: suggestion,
-                              originCoord: null,
-                            });
-                            setActiveSuggestionField(null);
-                          }}
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div className="w-full bg-white/60 border-none rounded-lg px-3 py-2 text-sm font-bold text-[#001d3d]">
+                  {tripRequest.originCoord
+                    ? "Current location pinned"
+                    : "Detecting current location..."}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -399,32 +384,11 @@ const HomeScreen = ({
         <div className="bg-white/90 rounded-[24px] p-4 mb-8 border border-[#dce3ea] shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-[#001d3d]">
-              Tap Map To Pin Trip Points
+              Tap Map To Pin Destination
             </h3>
-            <div className="flex bg-[#eef3f8] rounded-xl p-1">
-              <button
-                type="button"
-                onClick={() => setMapPickMode("origin")}
-                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg ${
-                  mapPickMode === "origin"
-                    ? "bg-[#001d3d] text-white"
-                    : "text-[#60778f]"
-                }`}
-              >
-                Set Origin
-              </button>
-              <button
-                type="button"
-                onClick={() => setMapPickMode("destination")}
-                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg ${
-                  mapPickMode === "destination"
-                    ? "bg-[#001d3d] text-white"
-                    : "text-[#60778f]"
-                }`}
-              >
-                Set Destination
-              </button>
-            </div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#60778f]">
+              Origin follows your GPS
+            </p>
           </div>
 
           <div className="h-52 rounded-2xl overflow-hidden border border-[#dce3ea]">
@@ -518,9 +482,7 @@ const HomeScreen = ({
 
         <button
           onClick={handleFindBestRoute}
-          disabled={
-            !tripRequest.origin.trim() || !tripRequest.destination.trim()
-          }
+          disabled={!tripRequest.originCoord || !tripRequest.destination.trim()}
           className="w-full h-14 bg-[#001d3d] disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-2xl font-bold uppercase tracking-widest text-sm shadow-xl mb-10 hover:bg-[#002d5d] active:scale-95 transition-all"
         >
           Find Best Route

@@ -24,19 +24,48 @@ const normalizeScore = (value: number, min: number, max: number): number => {
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
-const trafficFromDuration = (
-  durationMin: number,
-  fastestDurationMin: number,
-): DisplayRoute["trafficLabel"] => {
-  const ratio = durationMin / fastestDurationMin;
+const freeFlowSpeedKph = 40;
 
-  if (ratio <= 1.15) {
+const trafficFromRouteProfile = (
+  durationMin: number,
+  distanceKm: number,
+): DisplayRoute["trafficLabel"] => {
+  const safeDistanceKm = Math.max(0.1, distanceKm);
+  const safeDurationHours = Math.max(1 / 60, durationMin / 60);
+  const averageSpeedKph = safeDistanceKm / safeDurationHours;
+  const freeFlowDurationMin = (safeDistanceKm / freeFlowSpeedKph) * 60;
+  const delayRatio = durationMin / Math.max(1, freeFlowDurationMin);
+  const minutesOverFreeFlow = Math.max(0, durationMin - freeFlowDurationMin);
+
+  // Short hops can have noisy speed values due to map-matching and signal delays.
+  // Avoid over-classifying these as Heavy unless there is clear delay.
+  if (durationMin <= 5 || safeDistanceKm <= 2) {
+    if (delayRatio >= 1.6 && minutesOverFreeFlow >= 3) {
+      return "Moderate Traffic";
+    }
+
     return "Low Traffic";
   }
-  if (ratio <= 1.35) {
+
+  if (
+    (delayRatio >= 1.75 && minutesOverFreeFlow >= 8) ||
+    (averageSpeedKph < 15 && durationMin >= 12)
+  ) {
+    return "Heavy Traffic";
+  }
+
+  if (
+    (delayRatio >= 1.3 && minutesOverFreeFlow >= 3) ||
+    (averageSpeedKph < 28 && durationMin >= 6)
+  ) {
     return "Moderate Traffic";
   }
-  return "Heavy Traffic";
+
+  if (delayRatio <= 1.1) {
+    return "Low Traffic";
+  }
+
+  return "Moderate Traffic";
 };
 
 export const buildDisplayRoutes = (routes: RouteScenario[]): DisplayRoute[] => {
@@ -134,7 +163,10 @@ export const buildDisplayRoutes = (routes: RouteScenario[]): DisplayRoute[] => {
     return {
       ...route,
       efficiencyScore,
-      trafficLabel: trafficFromDuration(route.durationMin, minDuration),
+      trafficLabel: trafficFromRouteProfile(
+        route.durationMin,
+        route.distanceKm,
+      ),
       co2DeltaLabel,
     };
   });

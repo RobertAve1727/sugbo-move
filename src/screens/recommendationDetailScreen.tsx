@@ -38,9 +38,17 @@ const RecommendationDetailScreen = ({
     "goNow",
   );
 
-  const baseRoutes = routeData?.routes?.length
-    ? routeData.routes
-    : fallbackRoutes;
+  const baseRoutes = useMemo(() => {
+    if (routeData?.routes?.length) {
+      return routeData.routes;
+    }
+
+    if (loadError) {
+      return fallbackRoutes;
+    }
+
+    return [];
+  }, [loadError, routeData?.routes]);
 
   const routes = useMemo(
     () => applyVehicleMetrics(baseRoutes, tripRequest),
@@ -68,7 +76,9 @@ const RecommendationDetailScreen = ({
     [directRoute?.id, displayRoutes],
   );
 
-  const isCongested = directRoute?.trafficLabel === "Heavy Traffic";
+  const isCongested =
+    directRoute?.trafficLabel === "Heavy Traffic" ||
+    directRoute?.trafficLabel === "Moderate Traffic";
 
   // Logic: If traffic is not heavy, force 'goNow' selection
   useEffect(() => {
@@ -365,16 +375,6 @@ const RecommendationDetailScreen = ({
               type="button"
               onClick={() => {
                 if (!selectedNavigationRoute) return;
-
-                // If goNow on congested route, maybe suggest alternatives instead
-                if (
-                  selectedAction === "goNow" &&
-                  isCongested &&
-                  bestAlternativeRoute
-                ) {
-                  onViewAlternativeRoutes(bestAlternativeRoute.id as any);
-                  return;
-                }
 
                 onStartRoute({
                   action: selectedAction,
