@@ -112,10 +112,12 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
   const startPoint = selectedRoute?.geometry[0];
   const endPoint = selectedRoute?.geometry[selectedRoute.geometry.length - 1];
 
-  const routeAccent: Record<RouteScenario["id"], string> = {
-    routeA: "#facc15",
-    routeB: "#4ade80",
-    routeC: "#ef4444",
+  const routeAccent = (routeId: RouteScenario["id"]): string => {
+    if (recommendedRoute?.id === routeId) {
+      return "#22c55e";
+    }
+
+    return "#facc15";
   };
 
   return (
@@ -146,7 +148,7 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
               <Polyline
                 key={routeLine.id}
                 pathOptions={{
-                  color: routeAccent[routeLine.id],
+                  color: routeAccent(routeLine.id),
                   weight: routeLine.id === selectedRoute?.id ? 7 : 4,
                   opacity: routeLine.id === selectedRoute?.id ? 0.95 : 0.65,
                 }}
@@ -275,7 +277,7 @@ const RouteComparisonScreen: React.FC<RouteComparisonScreenProps> = ({
                   className={`bg-white p-6 rounded-3xl border-l-[6px] transition-all ${
                     isSelected ? "shadow-md ring-1 ring-black/5" : "shadow-sm"
                   }`}
-                  style={{ borderLeftColor: routeAccent[route.id] }}
+                  style={{ borderLeftColor: routeAccent(route.id) }}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <h4 className="text-2xl font-bold text-gray-900">

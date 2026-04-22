@@ -80,6 +80,27 @@ const RecommendationDetailScreen = ({
     directRoute?.trafficLabel === "Heavy Traffic" ||
     directRoute?.trafficLabel === "Moderate Traffic";
 
+  const trafficUiTone = useMemo(() => {
+    if (directRoute?.trafficLabel === "Heavy Traffic") {
+      return {
+        border: "#ef4444",
+        badge: "bg-red-100 text-red-700",
+      };
+    }
+
+    if (directRoute?.trafficLabel === "Moderate Traffic") {
+      return {
+        border: "#facc15",
+        badge: "bg-yellow-100 text-yellow-700",
+      };
+    }
+
+    return {
+      border: "#22c55e",
+      badge: "bg-green-100 text-green-700",
+    };
+  }, [directRoute?.trafficLabel]);
+
   // Logic: If traffic is not heavy, force 'goNow' selection
   useEffect(() => {
     if (!isCongested) {
@@ -170,7 +191,7 @@ const RecommendationDetailScreen = ({
 
           <div
             className="bg-white p-6 rounded-3xl border-l-[6px] shadow-sm"
-            style={{ borderLeftColor: isCongested ? "#ef4444" : "#facc15" }}
+            style={{ borderLeftColor: trafficUiTone.border }}
           >
             <div className="flex justify-between items-center">
               <div>
@@ -182,13 +203,7 @@ const RecommendationDetailScreen = ({
                 </p>
               </div>
               <span
-                className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                  directRoute?.trafficLabel === "Heavy Traffic"
-                    ? "bg-red-100 text-red-700"
-                    : directRoute?.trafficLabel === "Moderate Traffic"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-green-100 text-green-700"
-                }`}
+                className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${trafficUiTone.badge}`}
               >
                 {directRoute?.trafficLabel ?? "Traffic"}
               </span>
