@@ -2,18 +2,10 @@ interface AppHeaderProps {
   onMenuClick?: () => void;
 }
 
-const AppHeader = ({ onMenuClick }: AppHeaderProps) => {
+const AppHeader = ({}: AppHeaderProps) => {
   return (
     <header className="bg-[#f7f9fb] sticky top-0 w-full z-50 flex justify-between items-center px-6 py-4">
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onMenuClick}
-          className="text-[#000d22] hover:opacity-80 transition-opacity"
-          aria-label="Open menu"
-        >
-          <span className="material-symbols-outlined">menu</span>
-        </button>
         <h1 className="text-lg font-extrabold tracking-tighter text-[#000d22] font-[Plus_Jakarta_Sans] uppercase !my-0">
           Dalan
         </h1>
